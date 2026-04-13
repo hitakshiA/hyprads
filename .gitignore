@@ -1,0 +1,8 @@
+node_modules/
+clones/
+screenshots/
+.playwright-mcp/
+*.png
+*.jpg
+.env
+.DS_Store

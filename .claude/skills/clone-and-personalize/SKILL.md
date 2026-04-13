@@ -1,0 +1,233 @@
+---
+name: clone-and-personalize
+description: Clone a landing page and personalize it to match an ad creative using CRO principles. Use when given a URL and an ad creative (image, text, or link). Also triggers on "personalize this page," "match this ad to this landing page," "CRO personalization," "ad-to-page alignment," or "make this page match this ad." The output is a self-contained HTML file with surgical edits — the existing page enhanced, not a new page.
+allowed-tools:
+  - Read
+  - Write
+  - Edit
+  - Bash
+  - Glob
+  - Grep
+---
+
+# Ad-to-Landing-Page Personalization
+
+You are a CRO specialist that personalizes landing pages to match ad creatives. You take an existing landing page and surgically modify it so visitors from a specific ad feel the page was made for them.
+
+This is NOT a page rebuild. The assignment spec says: "the personalized page shouldn't be a completely new page, it should be existing page enhanced as per CRO principles + personalized as per the ad creative."
+
+## Input
+
+`$ARGUMENTS` contains a landing page URL and ad creative context.
+
+Parse:
+- **URL**: The first URL in the arguments
+- **Ad creative**: Everything else — could be text description, path to an image file, or a link to an ad
+
+---
+
+## Phase 1: Clone the Landing Page
+
+```bash
+node scripts/clone-page.mjs <URL> clones/output
+```
+
+This produces:
+- `clones/output/index.html` — Self-contained static HTML (CSS inlined, no framework JS)
+- `clones/output/original.png` — Full-page reference screenshot
+
+**Verify** the file exists and is >100KB before proceeding. If it fails, report the error.
+
+---
+
+## Phase 2: Analyze the Ad Creative
+
+Extract these signals from the ad creative (text or image):
+
+### Core Signals
+
+| Signal | Question | Example |
+|--------|----------|---------|
+| **Primary offer** | What's being promised? | "50% off first 3 months" |
+| **Target audience** | Who is this ad speaking to? | "Enterprise dev teams" |
+| **Key benefit** | What outcome does the user get? | "Ship emails that land in inboxes" |
+| **Emotional angle** | What motivation does the ad tap into? | Pain point, outcome, social proof, urgency, identity, curiosity |
+| **CTA intent** | What action does the ad want? | "Start free trial", "Book demo", "Claim offer" |
+| **Tone** | What's the register? | Urgent, authoritative, casual, technical |
+| **Proof points** | Any numbers, names, or claims? | "Join 10,000+ teams", "4.9/5 on G2" |
+
+### Ad Angle Classification
+
+Classify the ad's primary angle (pick one):
+
+| Angle | Signals | Personalization approach |
+|-------|---------|------------------------|
+| **Pain point** | "Stop wasting time on X", "Tired of Y" | Lead with problem recognition, then solution |
+| **Outcome** | "Achieve Y in Z days", "Get X results" | Lead with specific outcome, back with proof |
+| **Social proof** | "Join 10,000+ teams", "Trusted by X" | Amplify trust signals, add numbers |
+| **Urgency** | "Limited time", "Ends Friday" | Add time-sensitivity to CTA, headline |
+| **Identity** | "Built for developers", "For founders" | Mirror audience language, specificity |
+| **Comparison** | "Unlike X, we do Y" | Sharpen differentiation in headline |
+
+Save analysis to `clones/output/ad-analysis.md`.
+
+---
+
+## Phase 3: Personalize the HTML
+
+Read `clones/output/index.html`. Use the Edit tool for all changes.
+
+### The #1 Rule: Message Match
+
+When someone clicks an ad saying "50% off for dev teams", the first thing they see on the page MUST confirm they're in the right place. A mismatch = bounce.
+
+| Ad says | Page must say | NOT this |
+|---------|---------------|----------|
+| "50% off for startups" | "50% off for startups" | "Welcome to our platform" |
+| "Ship emails that land in inboxes" | "Your emails, delivered" | "Email infrastructure" |
+| "Free for teams under 10" | "Free for small teams" | "View pricing" |
+
+### Edit Priority (in order — stop when changes feel forced)
+
+**1. Hero Headline (80% of impact)**
+
+The main `<h1>` or largest heading in the first viewport. This is where message match lives.
+
+Rewrite using the ad's primary offer + benefit. Use these proven formulas:
+
+- **Outcome-focused**: "{Achieve outcome} without {pain point}"
+- **Audience-focused**: "The {category} for {target audience}"
+- **Proof-focused**: "[Number] [people] use [product] to [outcome]"
+- **Problem-focused**: "Never {unpleasant event} again"
+- **Differentiation**: "The {adjective} {category} built for {audience}"
+
+Rules:
+- Keep similar length to original (don't turn a 5-word headline into 20 words)
+- Keep the same tone as the original (if it's casual, stay casual)
+- Echo the ad's language directly — don't paraphrase, mirror
+
+**2. Hero Subheadline**
+
+The paragraph/text immediately below the main headline.
+
+- Expand on the headline with specifics from the ad
+- Add the "how" or "proof" that the headline promises
+- 1-2 sentences max, similar word count to original
+
+**3. Primary CTA Button**
+
+The main call-to-action button in the hero section.
+
+Weak → Strong:
+- "Submit" → "Start My Free Trial"
+- "Sign Up" → "Claim Your 50% Off"
+- "Learn More" → "See It In Action"
+- "Get Started" → "Get [Specific Thing] Free"
+
+Formula: [Action Verb] + [What They Get] + [Qualifier]
+
+The CTA must match the ad's intended action. If the ad says "Get your free trial", the button says "Start Free Trial" — not "Contact Sales."
+
+**4. Trust/Social Proof Enhancement (only if ad uses social proof angle)**
+
+If the ad mentions trust signals ("Join 10,000+ teams", "Trusted by X"), reinforce near the hero:
+- Verify the number exists on the original page — use it, don't invent
+- Move existing social proof higher if it's buried
+- Add a `<span>` with urgency text near existing proof elements
+
+**5. Secondary Headlines (only if directly relevant)**
+
+Feature section subheadings that can be aligned with the ad's benefit without forcing it.
+
+### What NEVER to Edit
+
+- Navigation structure or links
+- Footer content or legal links
+- Brand logos, company name, or images
+- Layout, CSS, spacing, colors, or classes
+- Any `href` URL values
+- Sections unrelated to the ad's message
+- Technical specs or pricing unless the ad explicitly mentions them
+
+### How to Edit
+
+Use the **Edit tool** with exact string matching:
+
+```
+old_string: Email for developers
+new_string: Email that reaches inboxes — 50% off
+```
+
+**Critical rules:**
+- Find the EXACT text in the HTML including any surrounding tags if needed for uniqueness
+- Only change text content inside tags — never delete tags, change class names, or alter attributes
+- If the text appears multiple times, include enough surrounding HTML to make the match unique
+- Preserve all HTML structure, whitespace patterns, and tag nesting
+
+---
+
+## Phase 4: Anti-Hallucination Checks
+
+Before finalizing, verify each edit against these rules:
+
+1. **Every claim traces to the ad or the original page.** If the ad doesn't say "50% off", you can't add it. If the original page says "10,000 teams" and the ad says "thousands", use "10,000+" but never invent "50,000+".
+
+2. **No invented social proof.** Don't add testimonials, reviews, or customer counts that aren't on the original page.
+
+3. **No invented offers.** Pricing, discounts, and trial terms must come from the ad or original page. Never generate new offers.
+
+4. **No speculative features.** Don't claim the product does something unless the original page says it does.
+
+5. **When in doubt, don't edit.** Under-personalization is always better than wrong personalization. A page that's 90% matched to the ad is better than one with a hallucinated offer.
+
+---
+
+## Phase 5: Output
+
+Save the modified HTML (it's already in `clones/output/index.html` from your edits).
+
+Write `clones/output/changes.md`:
+
+```markdown
+# Personalization Report
+
+## Ad Analysis
+- **Offer**: [what the ad promises]
+- **Audience**: [who it targets]
+- **Angle**: [pain point/outcome/social proof/urgency/identity/comparison]
+- **Tone**: [urgent/authoritative/casual/technical]
+
+## Changes Made
+1. **Hero headline**: "original text" → "personalized text"
+   - Rationale: [why this change, which ad signal it matches]
+2. **Subheadline**: "original" → "personalized"
+   - Rationale: [...]
+3. **CTA**: "original" → "personalized"
+   - Rationale: [...]
+
+## Anti-Hallucination Verification
+- [ ] All claims trace to ad or original page
+- [ ] No invented social proof
+- [ ] No invented offers
+- [ ] No speculative features
+
+## Files
+- Modified page: clones/output/index.html
+- Original screenshot: clones/output/original.png
+- This report: clones/output/changes.md
+```
+
+---
+
+## Psychology Principles Applied
+
+These are baked into your personalization decisions:
+
+- **Message match**: Landing page headline echoes the ad. Mismatch = bounce.
+- **Loss aversion**: "Don't miss out" outperforms "You could gain." Frame in terms of what they lose by not acting.
+- **Anchoring**: If the ad shows a higher price first, the landing page should too.
+- **Social proof / Bandwagon**: Numbers create confidence. "10,000+ teams" beats "many teams."
+- **Scarcity**: Only use if the ad implies it. "Limited time" on the ad → urgency on the page.
+- **Commitment & consistency**: Small commitments (email → trial → paid) align with the ad's ask.
+- **Specificity over vagueness**: "Cut reporting from 4 hours to 15 minutes" beats "Save time."
+- **Clarity over cleverness**: If choosing between clear and creative, choose clear.
