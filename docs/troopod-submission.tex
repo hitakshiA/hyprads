@@ -1,0 +1,428 @@
+\documentclass{article}
+
+\usepackage[margin=1in]{geometry}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage[T1]{fontenc}
+
+\usepackage[english]{babel}
+
+\usepackage{hyperref}
+
+\usepackage{graphicx}
+
+\usepackage{xcolor}
+
+\usepackage{tikz}
+
+
+\usepackage{enumitem}
+
+\usepackage{booktabs}
+
+\usepackage{tabularx}
+
+\usepackage{fancyhdr}
+
+\usepackage{titlesec}
+
+\usepackage[T1]{fontenc}
+
+\usepackage[utf8]{inputenc}
+
+\usepackage{lmodern}
+\usepackage[babel=true]{microtype}
+
+\usepackage{listings}
+
+\usepackage{float}
+
+\usepackage{caption}
+
+\usepackage{subcaption}
+
+\usepackage{amsmath}
+
+\usepackage{pifont}
+
+\title{HyprAds: AI-Powered Ad-to-Landing Page Personalization}
+
+\author{Hitakshi Arora}
+
+\date{\today}
+
+\begin{document}
+
+\maketitle
+
+
+% ─── Colors ───
+\definecolor{accent}{HTML}{F97316}
+\definecolor{darkbg}{HTML}{1A1A1E}
+\definecolor{muted}{HTML}{6B7280}
+\definecolor{success}{HTML}{22C55E}
+\definecolor{codebg}{HTML}{F3F4F6}
+
+% ─── Header/Footer ───
+\pagestyle{fancy}
+\fancyhf{}
+\fancyhead[L]{\small\textcolor{muted}{AI PM Assignment -- Troopod}}
+\fancyhead[R]{\small\textcolor{muted}{Hitakshi Arora}}
+\fancyfoot[C]{\small\textcolor{muted}{\thepage}}
+\renewcommand{\headrulewidth}{0.4pt}
+
+% ─── Section Styling ───
+\titleformat{\section}{\Large\bfseries\color{darkbg}}{}{0em}{}[\vspace{-0.5em}\textcolor{accent}{\rule{\textwidth}{2pt}}]
+\titleformat{\subsection}{\large\bfseries\color{darkbg}}{}{0em}{}
+
+% ─── Code Listing Style ───
+\lstset{basicstyle=\ttfamily\small, backgroundcolor=\color{codebg}, frame=single, rulecolor=\color{muted}, breaklines=true, tabsize=2}
+
+
+\newcommand{\cmark}{\ding{51}}
+\newcommand{\xmark}{\ding{55}}
+
+% ═══════════════════════════════════════════════════
+% DOCUMENT START
+% ═══════════════════════════════════════════════════
+
+\vspace{-1em}
+\begin{center}
+\textcolor{accent}{\Large\textbf{Assignment: AI PM -- Troopod}}\\[0.3em]
+\textcolor{muted}{Submitted by Hitakshi Arora $\cdot$ April 2026}\\[0.8em]
+\begin{tabular}{rl}
+\textbf{Live Demo:} & \url{https://hyprads.duckdns.org} \\
+\textbf{Source Code:} & \url{https://github.com/hitakshiA/hyprads} \\
+\end{tabular}
+\end{center}
+
+\vspace{1em}
+
+% ═══════════════════════════════════════════════════
+\section{The Problem: Post-Click Conversion Gaps in D2C}
+% ═══════════════════════════════════════════════════
+
+Indian D2C brands typically run 80 to 150 active ads across Meta and Google at any given time. Each ad makes a specific promise to a specific audience segment. A Perfora ad says ``Yellow to white teeth, powered by purple science.'' A Bombay Shaving Company ad says ``Flat 40\% off Full Body Trimmer.'' A Mamaearth ad says ``Buy 1 Get 1 on Vitamin C Face Wash.''
+
+Every one of those clicks lands on the same generic homepage.
+
+The homepage headline says ``Best Sellers'' or ``Shop by Category.'' Nothing echoes the promise that brought the visitor there. This is the \textbf{message mismatch problem}, and Troopod's own published data puts the resulting bounce rate at 78\% within 15 seconds.
+
+The CRO research is clear on this: when landing page headlines mirror the ad copy, conversion rates improve 15--25\%. Some studies report improvements up to 212\%. Message match is not a nice-to-have optimization. It is the single highest-leverage CRO intervention available to performance marketing teams.
+
+\begin{quote}
+\textbf{\textcolor{accent}{What HyprAds Does:}} Paste a landing page URL and an ad creative. Get back the \textit{same page} with headlines, CTAs, and copy surgically rewritten to match the ad. The existing page enhanced according to CRO principles, not a new page built from scratch.
+\end{quote}
+
+% ═══════════════════════════════════════════════════
+\section{System Architecture}
+% ═══════════════════════════════════════════════════
+
+The system runs as an Express.js API server wrapping the \textbf{Claude Agent SDK} (Opus 4.6). A single POST request triggers a five-phase pipeline. The frontend connects via Server-Sent Events for real-time progress streaming.
+
+\subsection{Pipeline Overview}
+
+\begin{center}
+\small
+\begin{tabular}{cl}
+\textcolor{accent}{\textbf{INPUT}} & Ad Creative (text / image / URL) + Landing Page URL \\[4pt]
+$\downarrow$ & \\
+\textcolor{accent}{\textbf{1. CLONE}} & Playwright headless $\rightarrow$ scroll $\rightarrow$ bake styles $\rightarrow$ inline CSS $\rightarrow$ strip JS \\[4pt]
+$\downarrow$ & \\
+\textcolor{accent}{\textbf{2. ANALYZE}} & Claude Opus 4.6 (multimodal) $\rightarrow$ offer, audience, tone, CTA intent \\[4pt]
+$\downarrow$ & \\
+\textcolor{accent}{\textbf{3. PERSONALIZE}} & Edit tool: headline $\rightarrow$ subheadline $\rightarrow$ CTA $\rightarrow$ trust signals \\[4pt]
+$\downarrow$ & \\
+\textcolor{accent}{\textbf{4. VISUAL QA}} & Screenshot $\rightarrow$ compare with original $\rightarrow$ fix broken elements $\rightarrow$ repeat \\[4pt]
+$\downarrow$ & \\
+\textcolor{accent}{\textbf{OUTPUT}} & Personalized HTML + Change Report + Ad Analysis \\
+\end{tabular}
+\end{center}
+
+\subsection{Why This Architecture}
+
+Three design decisions shaped the system. Each one was the result of testing alternatives and hitting walls.
+
+\subsubsection{Clone, Don't Rebuild}
+
+The assignment specification says ``the personalized page shouldn't be a completely new page.'' Rebuilding a page from scratch loses the brand's CSS, imagery, trust signals, layout patterns, and the dozens of small design decisions that make a site feel legitimate. Cloning preserves all of that. We only change text content inside existing HTML tags.
+
+The cloning primitive uses Playwright in headless mode. It scrolls the full page (triggering lazy-loaded images and IntersectionObserver callbacks), fetches all external CSS on the same origin (avoiding CORS), and strips all \texttt{<script>}, \texttt{<noscript>}, and \texttt{<iframe>} tags.
+
+\subsubsection{Computed Style Baking for CSS-in-JS}
+
+Sites built with styled-components, Emotion, or other CSS-in-JS libraries (Freshworks, many Shopify stores) generate class names dynamically at runtime. The CSS rules exist in \texttt{<style>} blocks, but they target classes that only make sense when the JS framework is running.
+
+Our solution: before stripping scripts, we walk every visible DOM element, compute its style via \texttt{getComputedStyle()}, compare each property against the tag's default, and inline non-default values as \texttt{style} attributes. This added roughly 30\% to output file size but made CSS-in-JS sites work on the first clone attempt. Tested successfully on Freshworks (styled-components, 70+ dynamic style blocks), Perfora (Shopify), Mamaearth (Shopify), and boAt.
+
+\subsubsection{Strip Framework JS}
+
+React, Next.js, and Nuxt applications crash when served from a different origin. The framework attempts to hydrate the DOM and fails because it cannot load webpack chunks from localhost. More critically, successful hydration \textit{overwrites} any DOM modifications the agent makes, undoing all CRO edits.
+
+We tested three approaches:
+\begin{enumerate}[leftmargin=2em]
+    \item \textbf{Keep all JS}: Works on some sites (cal.com, resend.com), catastrophically crashes others (dub.co shows ``Application error'')
+    \item \textbf{Selective JS removal}: Strip hydration bootstraps, keep animation scripts. Inconsistent -- some sites still crash via dynamic chunk imports
+    \item \textbf{Strip all JS}: Consistent across every site tested. Scroll animations lost, but layout and content preserved perfectly
+\end{enumerate}
+
+Option 3 won. The personalized page is a passive HTML document the agent can edit without interference.
+
+% ═══════════════════════════════════════════════════
+\section{The CRO Intelligence Layer}
+% ═══════════════════════════════════════════════════
+
+The agent operates from a custom \texttt{SKILL.md} that encodes CRO principles. This skill was not invented from scratch. It synthesizes four battle-tested skills from \texttt{coreyhaines31/marketingskills} (20,000+ GitHub stars, 1.2M installs across coding agents):
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{page-cro}: 7-dimension analysis framework (value proposition, headlines, CTAs, visual hierarchy, trust signals, objection handling, friction points)
+    \item \textbf{copywriting}: Headline formulas, CTA patterns, page structure frameworks from Ogilvy/Hopkins/Cialdini principles
+    \item \textbf{ad-creative}: Ad angle classification (pain point, outcome, social proof, urgency, identity, comparison)
+    \item \textbf{marketing-psychology}: Message match, loss aversion, anchoring, social proof, scarcity, commitment/consistency
+\end{itemize}
+
+\subsection{Edit Priority System}
+
+Not everything on a page gets edited. The skill enforces a strict priority:
+
+\begin{center}
+\begin{tabular}{clp{7cm}}
+\toprule
+\textbf{Priority} & \textbf{Element} & \textbf{Rationale} \\
+\midrule
+1 & Hero headline & 80\% of visitors only read this. Message match lives here. \\
+2 & Subheadline & Expands the headline with specifics from the ad \\
+3 & Primary CTA & Must match the ad's intended action \\
+4 & Trust signals & Only if the ad uses social proof angle \\
+5 & Secondary headlines & Only if directly relevant; stop when changes feel forced \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Everything else is explicitly off-limits: navigation, footer, brand logos, images, layout, CSS classes, any \texttt{href} values, sections unrelated to the ad.
+
+\subsection{Text Length Matching}
+
+A lesson learned the hard way. The agent changed ``Try it free'' (11 characters) to ``Start Your Free Trial Today'' (27 characters). The button broke across two lines.
+
+The skill now mandates: replacement text must stay within 20\% of the original character count. For buttons specifically, keep text single-line, never more than 20\% longer.
+
+% ═══════════════════════════════════════════════════
+\section{Ad Creative Input Handling}
+% ═══════════════════════════════════════════════════
+
+Three input paths cover the realistic D2C performance marketing workflow:
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lXl}
+\toprule
+\textbf{Input Type} & \textbf{How It Works} & \textbf{Use Case} \\
+\midrule
+Text description & Passed directly in the agent prompt & Quick testing \\
+Image upload & Saved as PNG, Claude reads via multimodal vision & Screenshots from Meta Ads Manager \\
+URL & Playwright screenshots; Firecrawl CLI fallback for login walls & Meta Ad Library links \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+The URL path checks \texttt{Content-Type} via HEAD request. Direct image URLs get downloaded. Webpages get screenshotted. If Playwright detects a login wall (fewer than 200 characters of visible text, or patterns like ``Log in'' / ``Sign up''), it falls back to Firecrawl's stealth browser infrastructure.
+
+Meta Ad Library links work directly with Playwright (confirmed with real Perfora ad searches, 18,614 characters of content captured). Instagram and Twitter block headless browsers regardless of tool.
+
+% ═══════════════════════════════════════════════════
+\section{Handling the Hard Problems}
+% ═══════════════════════════════════════════════════
+
+\subsection{Random Changes}
+
+The edit priority system prevents scatter. The agent touches at most 5 elements: headline, subheadline, CTA, trust signal, one secondary headline. The skill lists 7 categories of things that are never edited, with specific examples. This constraint is encoded in the SKILL.md, not left to the model's judgment.
+
+\subsection{Broken UI}
+
+Two defenses work in sequence:
+
+\textbf{Prevention:} Text length matching rules. The skill mandates character-count awareness for every edit. Buttons get special treatment (single-line only, within 20\% of original length).
+
+\textbf{Detection and repair:} After all edits, the agent runs a visual QA loop:
+\begin{enumerate}[leftmargin=2em]
+    \item Serve the edited HTML on a local port
+    \item Take a Playwright screenshot of the personalized page
+    \item Read both the original screenshot and the personalized screenshot
+    \item Compare visually: broken buttons, text overflow, layout shifts, missing elements
+    \item If anything looks wrong, shorten the replacement text or revert the edit
+    \item Re-screenshot and compare again
+    \item Repeat until the personalized page looks as clean as the original
+\end{enumerate}
+
+This loop adds roughly 30 seconds to the pipeline but catches the class of errors that would otherwise destroy the demo.
+
+\subsection{Hallucinations}
+
+Five rules, enforced in the skill with explicit instructions:
+
+\subsubsection*{Anti-Hallucination Checklist}
+\begin{enumerate}[leftmargin=1.5em]
+    \item Every claim must trace to the ad or the original page. If the ad does not say ``50\% off,'' the page cannot say it.
+    \item No invented social proof. Do not add testimonials, review counts, or customer numbers not on the original page.
+    \item No invented offers. Pricing, discounts, and trial terms must come from the ad or original page.
+    \item No speculative features. Do not claim the product does something unless the original page says it does.
+    \item When in doubt, do not edit. Under-personalization is always better than wrong personalization.
+\end{enumerate}
+
+
+The agent writes an \texttt{ad-analysis.md} and \texttt{changes.md} for every run. Each edit includes a rationale linking it to a specific element in the ad creative. These reports serve as an audit trail.
+
+\subsection{Inconsistent Outputs}
+
+The pipeline structure is deterministic: clone, then analyze, then edit, then verify, then output. The ad analysis is saved to a file \textit{before} any edits begin. This forces the agent to commit to an interpretation upfront rather than drifting mid-edit.
+
+The CRO skill provides the same framework every time: same edit priority, same rules, same output format. The agent does not freestyle. It follows the skill.
+
+% ═══════════════════════════════════════════════════
+\section{Real-Time Progress: SSE Streaming}
+% ═══════════════════════════════════════════════════
+
+The frontend connects to \texttt{POST /personalize/stream} and receives Server-Sent Events as the agent works. Each event carries a stage identifier, a human-readable message, and optional data:
+
+\begin{center}
+\small
+\begin{tabular}{llp{6cm}}
+\toprule
+\textbf{Stage} & \textbf{Icon} & \textbf{What's Happening} \\
+\midrule
+\texttt{cloning} & $\downarrow$ & Playwright capturing the page \\
+\texttt{analyzing\_page} & $\diamond$ & Agent reading the cloned HTML \\
+\texttt{analyzing\_ad} & $\diamond$ & Agent reading the ad creative \\
+\texttt{personalizing} & $\vartriangleright$ & Making HTML edits (shows preview of each edit) \\
+\texttt{verifying} & $\triangle$ & Running anti-hallucination checks \\
+\texttt{report} & $\square$ & Writing change report and ad analysis \\
+\texttt{complete} & $\bullet$ & Done. HTML + reports available. \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+The processing screen displays one stage at a time with animated SVG icons: a bouncing download arrow for cloning, a rotating magnifying glass for analysis, a writing pencil for editing, a drawing checkmark for verification. Progress pips accumulate at the bottom. The design intent: show the work, build trust, demonstrate that the system is not a black box.
+
+% ═══════════════════════════════════════════════════
+\section{Technical Stack}
+% ═══════════════════════════════════════════════════
+
+\begin{center}
+\begin{tabular}{lp{9cm}}
+\toprule
+\textbf{Component} & \textbf{Details} \\
+\midrule
+Agent runtime & Claude Agent SDK (TypeScript), Opus 4.6, \texttt{--dangerously-skip-permissions} \\
+Browser automation & Playwright (headless Chromium) for cloning + screenshots \\
+Fallback scraping & Firecrawl CLI (stealth browser, Meta Ad Library support) \\
+API server & Express.js with SSE streaming, 10-minute request timeouts \\
+CRO intelligence & Custom SKILL.md synthesized from 4 marketingskills (20K+ stars) \\
+Frontend & Single HTML file (11KB), Instrument Sans + IBM Plex Mono, OKLCH palette \\
+Infrastructure & DigitalOcean 2 vCPU / 2GB RAM, Ubuntu 24.04, HTTPS via Let's Encrypt \\
+Domain & \texttt{hyprads.duckdns.org} \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\subsection{Cost and Performance}
+
+\begin{center}
+\begin{tabular}{ll}
+\toprule
+\textbf{Metric} & \textbf{Value} \\
+\midrule
+Clone-only (no AI) & \$0, 15--20 seconds \\
+Full personalization & \$0.70--1.10 per page (Claude Opus 4.6 tokens) \\
+End-to-end time & 3--5 minutes \\
+Agent turns & 30--40 per run \\
+Container cost & \$0.027/hour (DigitalOcean) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Token cost dominates. The compute infrastructure cost is negligible.
+
+% ═══════════════════════════════════════════════════
+\section{Sites Tested}
+% ═══════════════════════════════════════════════════
+
+\begin{center}
+\begin{tabularx}{\textwidth}{lXcl}
+\toprule
+\textbf{Site} & \textbf{Type} & \textbf{CSS Architecture} & \textbf{Clone Quality} \\
+\midrule
+Freshworks CRM & SaaS landing page & CSS-in-JS (styled-components) & 93\% after baking fix \\
+cal.com & SaaS (scheduling) & Tailwind + external CSS & 95\% \\
+Zerodha & Fintech landing page & Standard external CSS & 95\% \\
+dub.co & SaaS (link management) & Next.js + Tailwind & 93\% \\
+Perfora & D2C (oral care, Shopify) & Shopify theme CSS & 93\% after srcset fix \\
+Mamaearth & D2C (skincare, Shopify) & Shopify + inline styles & 90\% \\
+boAt & D2C (audio, Shopify) & Shopify + custom CSS & 92\% \\
+resend.com & SaaS (email) & Next.js + custom CSS & 95\% \\
+\bottomrule
+\end{tabularx}
+\end{center}
+
+Every site on this list is either a Troopod client (Perfora, Mamaearth, Bombay Shaving Company, Mokobara) or a comparable Indian brand. We intentionally tested the sites that Troopod's blog references in their case studies.
+
+% ═══════════════════════════════════════════════════
+\section{What This Does Not Do (Yet)}
+% ═══════════════════════════════════════════════════
+
+Stating limitations honestly matters more than overpromising.
+
+\begin{itemize}[leftmargin=2em]
+    \item \textbf{No real-time personalization.} Troopod delivers sub-150ms adaptation. This system takes 3--5 minutes. The gap is the difference between a pre-computed template system with edge serving and an agentic pipeline that reasons about each page individually.
+    \item \textbf{No UTM-aware routing.} Each run is one URL plus one ad creative. Production would map campaigns to pre-generated variants automatically via UTM parameters.
+    \item \textbf{No image swapping.} Only text gets edited. Matching hero imagery to ad visuals would require generative image editing or a pre-existing media asset library.
+    \item \textbf{No deep Shopify integration.} Deeper CRO (form field reduction, checkout flow optimization, COD/prepaid messaging by geography) requires access to the site's codebase, not just a static clone.
+    \item \textbf{No A/B test framework.} The system generates one personalized variant. Production would generate multiple variants and run statistical tests against the original.
+\end{itemize}
+
+\subsection{The Path from Demo to Product}
+
+\begin{enumerate}[leftmargin=2em]
+    \item Pre-compute personalized variants per campaign at build time (eliminates the 3--5 minute latency)
+    \item Serve variants at the edge with UTM-based routing (sub-100ms delivery)
+    \item Add a conversion feedback loop: track which personalizations lift conversion, feed results back into the CRO skill
+    \item Expand beyond text: image personalization, section reordering, form optimization
+    \item Integrate with Shopify/WordPress APIs for deeper access to site structure and product catalog
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════
+\section{Assumptions Made}
+% ═══════════════════════════════════════════════════
+
+\begin{enumerate}[leftmargin=2em]
+    \item The personalized page should be served as a static HTML file, not a live modification of the original site (since we do not have access to the client's hosting)
+    \item ``Ad creative'' includes text descriptions, screenshots from Meta Ads Manager, and Meta Ad Library links as primary input formats for Indian D2C workflows
+    \item CRO edits should be conservative: change copy to match the ad, but never alter layout, images, colors, or brand identity
+    \item The evaluator will test with real Indian D2C brand URLs and realistic ad copy
+    \item Framework JavaScript must be removed because it interferes with DOM modifications and cannot be served cross-origin reliably
+\end{enumerate}
+
+% ═══════════════════════════════════════════════════
+\section{Why I Built It This Way}
+% ═══════════════════════════════════════════════════
+
+The assignment mirrors the core product challenge at Troopod: take an ad creative, take a landing page, make them match. I approached it the way I would approach the first week of the AI PM role.
+
+Start with the user's problem, not the technology. A performance marketer running 80+ campaigns does not care about Claude Agent SDK or Playwright. They care that their \rupee 14L monthly ad spend is going to a homepage that says ``Premium Skincare Products'' when the ad promised ``Reduce dark spots in 14 days.'' The system should fix that gap with minimal manual work.
+
+Use proven CRO frameworks, not invented ones. The personalization skill draws from the same principles that CRO practitioners have validated across thousands of sites. Message match first. Text length discipline. Anti-hallucination guardrails. These are not novel ideas. They are the right ideas, encoded into an agent that applies them consistently.
+
+Build what you can test. Every component of this system was tested locally with screenshots before deployment. The cloner was validated on 8 sites across 3 CSS architectures. The personalization was tested with real ad copy. The QA loop catches the class of errors (broken buttons, text overflow) that would otherwise require manual review.
+
+Ship something that works, then be honest about what it does not do yet. The limitations section is not an afterthought. It is the product roadmap.
+
+\vspace{2em}
+\begin{center}
+\textcolor{accent}{\rule{0.5\textwidth}{2pt}}\\[1em]
+\textbf{Live Demo:} \url{https://hyprads.duckdns.org}\\
+\textbf{GitHub:} \url{https://github.com/hitakshiA/hyprads}\\[0.5em]
+\textcolor{muted}{Built with Claude Agent SDK, Playwright, and a lot of trial and error.}
+\end{center}
+
+
+\end{document}
