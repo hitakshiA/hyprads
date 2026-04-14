@@ -4,598 +4,160 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>HyprAds — Ad-to-Page Personalization</title>
-<meta name="description" content="AI-powered landing page personalization. Match your ads to your landing pages.">
+<meta name="description" content="AI-powered landing page personalization that matches your ads to your pages.">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:ital,wght@0,400;0,500;0,600;0,700;1,500;1,600;1,700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 *,*::before,*::after{margin:0;padding:0;box-sizing:border-box}
-
-:root {
-  --bg-primary: #0a0a0b;
-  --bg-secondary: #111113;
-  --bg-tertiary: #18181b;
-  --bg-elevated: #1e1e22;
-  --bg-input: #141416;
-  --border-subtle: #27272a;
-  --border-focus: #f97316;
-  --text-primary: #fafafa;
-  --text-secondary: #a1a1aa;
-  --text-muted: #71717a;
-  --accent: #f97316;
-  --accent-hover: #fb923c;
-  --accent-subtle: rgba(249, 115, 22, 0.12);
-  --accent-glow: rgba(249, 115, 22, 0.25);
-  --success: #22c55e;
-  --error: #ef4444;
-  --font-display: 'Outfit', sans-serif;
-  --font-mono: 'JetBrains Mono', monospace;
-  --radius: 10px;
-  --radius-lg: 16px;
+html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+:root{
+  --s0:oklch(7.5% 0.008 55);--s1:oklch(10% 0.006 55);--s2:oklch(13% 0.005 55);--s3:oklch(16% 0.005 55);
+  --bd:oklch(20% 0.006 55);--bh:oklch(28% 0.008 55);
+  --t1:oklch(93% 0.01 55);--t2:oklch(62% 0.01 55);--t3:oklch(42% 0.008 55);
+  --ac:oklch(72% 0.19 55);--acd:oklch(72% 0.19 55/0.15);--ach:oklch(78% 0.17 55);
+  --ok:oklch(72% 0.17 145);--err:oklch(65% 0.22 25);
+  --sans:'Instrument Sans',-apple-system,system-ui,sans-serif;
+  --mono:'IBM Plex Mono','SF Mono',monospace;
+  --eoq:cubic-bezier(0.25,1,0.5,1);--eoe:cubic-bezier(0.16,1,0.3,1);
 }
-
-html { background: var(--bg-primary); color: var(--text-primary); font-family: var(--font-display); -webkit-font-smoothing: antialiased; }
-body { min-height: 100vh; overflow-x: hidden; }
-
-/* Ambient glow behind hero */
-.hero-glow {
-  position: fixed; top: -40vh; left: 50%; transform: translateX(-50%);
-  width: 80vw; height: 60vh;
-  background: radial-gradient(ellipse at center, var(--accent-glow) 0%, transparent 70%);
-  pointer-events: none; z-index: 0; opacity: 0.4;
-}
-
-/* --- LAYOUT --- */
-.container { max-width: 960px; margin: 0 auto; padding: 0 24px; position: relative; z-index: 1; }
-
-/* --- NAV --- */
-nav {
-  display: flex; align-items: center; justify-content: space-between;
-  padding: 20px 32px; position: relative; z-index: 10;
-  border-bottom: 1px solid var(--border-subtle);
-}
-.logo { font-weight: 700; font-size: 1.15rem; letter-spacing: -0.03em; color: var(--text-primary); }
-.logo span { color: var(--accent); }
-nav a { color: var(--text-secondary); text-decoration: none; font-size: 0.875rem; font-weight: 500; transition: color 0.15s; }
-nav a:hover { color: var(--text-primary); }
-
-/* --- HERO --- */
-.hero {
-  text-align: left; padding: 80px 0 48px;
-}
-.hero h1 {
-  font-size: clamp(2.2rem, 5vw, 3.4rem); font-weight: 800;
-  letter-spacing: -0.04em; line-height: 1.1; max-width: 680px;
-  color: var(--text-primary);
-}
-.hero h1 em { font-style: normal; color: var(--accent); }
-.hero p.sub {
-  margin-top: 16px; font-size: 1.1rem; line-height: 1.6;
-  color: var(--text-secondary); max-width: 560px; font-weight: 400;
-}
-.hero .stat-line {
-  margin-top: 20px; display: flex; gap: 32px; font-size: 0.8rem;
-  color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
-}
-.hero .stat-line strong { color: var(--accent); font-family: var(--font-mono); }
-
-/* --- INPUT CARD --- */
-.input-card {
-  margin-top: 40px; background: var(--bg-secondary); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-lg); padding: 28px; position: relative; overflow: hidden;
-}
-.input-card::before {
-  content: ''; position: absolute; top: 0; left: 0; right: 0; height: 1px;
-  background: linear-gradient(90deg, transparent, var(--accent), transparent);
-  opacity: 0.5;
-}
-
-.field-group { margin-bottom: 20px; }
-.field-label {
-  font-size: 0.75rem; font-weight: 600; color: var(--text-muted);
-  text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; display: block;
-}
-.field-input {
-  width: 100%; background: var(--bg-input); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius); padding: 14px 16px; color: var(--text-primary);
-  font-family: var(--font-display); font-size: 0.95rem; outline: none; transition: border-color 0.2s;
-}
-.field-input:focus { border-color: var(--accent); }
-.field-input::placeholder { color: var(--text-muted); }
-
-/* Tab switcher for ad creative */
-.tab-row {
-  display: flex; gap: 2px; background: var(--bg-primary); border-radius: 8px; padding: 3px; margin-bottom: 12px;
-}
-.tab-btn {
-  flex: 1; padding: 8px 12px; border: none; background: transparent; color: var(--text-muted);
-  font-family: var(--font-display); font-size: 0.8rem; font-weight: 600; cursor: pointer;
-  border-radius: 6px; transition: all 0.15s; text-transform: uppercase; letter-spacing: 0.05em;
-}
-.tab-btn.active { background: var(--bg-elevated); color: var(--text-primary); }
-.tab-btn:hover:not(.active) { color: var(--text-secondary); }
-
-.tab-panel { display: none; }
-.tab-panel.active { display: block; }
-
-textarea.field-input { resize: vertical; min-height: 72px; }
-
-.file-drop {
-  border: 2px dashed var(--border-subtle); border-radius: var(--radius);
-  padding: 32px; text-align: center; cursor: pointer; transition: all 0.2s;
-  background: var(--bg-input); position: relative;
-}
-.file-drop:hover, .file-drop.dragover { border-color: var(--accent); background: var(--accent-subtle); }
-.file-drop input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
-.file-drop-text { color: var(--text-muted); font-size: 0.85rem; }
-.file-drop-text strong { color: var(--text-secondary); }
-.file-preview { max-height: 120px; margin-top: 12px; border-radius: 6px; }
-
-.btn-personalize {
-  width: 100%; padding: 16px; border: none; border-radius: var(--radius);
-  background: var(--accent); color: #fff; font-family: var(--font-display);
-  font-size: 1rem; font-weight: 700; cursor: pointer; letter-spacing: -0.01em;
-  transition: all 0.2s; margin-top: 8px;
-}
-.btn-personalize:hover { background: var(--accent-hover); transform: translateY(-1px); }
-.btn-personalize:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
-
-/* --- PROGRESS --- */
-.progress-section { display: none; margin-top: 40px; padding-bottom: 32px; }
-.progress-section.visible { display: block; }
-
-.progress-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
-}
-.progress-title { font-size: 0.8rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.1em; color: var(--text-muted); }
-.progress-timer { font-family: var(--font-mono); font-size: 0.85rem; color: var(--accent); font-weight: 500; }
-
-.timeline { position: relative; padding-left: 28px; }
-.timeline::before {
-  content: ''; position: absolute; left: 7px; top: 4px; bottom: 4px; width: 2px;
-  background: var(--border-subtle);
-}
-.timeline-item {
-  position: relative; padding: 8px 0; padding-left: 16px;
-  font-size: 0.875rem; color: var(--text-muted); line-height: 1.5;
-  opacity: 0; transform: translateY(8px);
-  animation: fadeInStep 0.3s ease-out forwards;
-}
-.timeline-item::before {
-  content: ''; position: absolute; left: -24px; top: 12px;
-  width: 12px; height: 12px; border-radius: 50%;
-  background: var(--bg-tertiary); border: 2px solid var(--border-subtle);
-}
-.timeline-item.active::before { border-color: var(--accent); background: var(--accent); box-shadow: 0 0 12px var(--accent-glow); }
-.timeline-item.done::before { border-color: var(--success); background: var(--success); }
-.timeline-item.done { color: var(--text-secondary); }
-.timeline-item.active { color: var(--text-primary); }
-.timeline-item .detail { font-family: var(--font-mono); font-size: 0.75rem; color: var(--text-muted); margin-top: 2px; display: block; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 600px; }
-
-@keyframes fadeInStep { to { opacity: 1; transform: translateY(0); } }
-
-/* --- RESULT --- */
-.result-section { display: none; margin-top: 40px; padding-bottom: 60px; }
-.result-section.visible { display: block; }
-
-.result-header {
-  display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;
-}
-.result-badge {
-  font-size: 0.75rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em;
-  color: var(--success); display: flex; align-items: center; gap: 6px;
-}
-.result-badge::before { content: ''; width: 8px; height: 8px; border-radius: 50%; background: var(--success); }
-.result-meta { font-family: var(--font-mono); font-size: 0.8rem; color: var(--text-muted); }
-
-.comparison {
-  display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 32px;
-}
-.comparison-pane { position: relative; }
-.comparison-label {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--text-muted); margin-bottom: 8px; display: flex; align-items: center; gap: 6px;
-}
-.comparison-label.after { color: var(--accent); }
-.comparison-label::before { content: ''; width: 6px; height: 6px; border-radius: 50%; }
-.comparison-label.before::before { background: var(--text-muted); }
-.comparison-label.after::before { background: var(--accent); }
-
-.comparison iframe {
-  width: 100%; height: 480px; border: 1px solid var(--border-subtle);
-  border-radius: var(--radius); background: #fff;
-}
-
-.btn-view-full {
-  display: inline-flex; align-items: center; gap: 8px;
-  padding: 10px 20px; border: 1px solid var(--border-subtle); border-radius: var(--radius);
-  background: transparent; color: var(--text-secondary); font-family: var(--font-display);
-  font-size: 0.85rem; font-weight: 600; cursor: pointer; transition: all 0.2s; text-decoration: none;
-}
-.btn-view-full:hover { border-color: var(--accent); color: var(--accent); }
-
-/* Reports */
-.reports { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-top: 24px; }
-.report-card {
-  background: var(--bg-secondary); border: 1px solid var(--border-subtle);
-  border-radius: var(--radius); padding: 20px; max-height: 400px; overflow-y: auto;
-}
-.report-card h3 {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em;
-  color: var(--text-muted); margin-bottom: 12px;
-}
-.report-card pre {
-  font-family: var(--font-mono); font-size: 0.78rem; line-height: 1.7;
-  color: var(--text-secondary); white-space: pre-wrap; word-break: break-word;
-}
-
-/* --- HOW IT WORKS --- */
-.how-section {
-  padding: 80px 0; border-top: 1px solid var(--border-subtle); margin-top: 40px;
-}
-.how-section h2 {
-  font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.14em;
-  color: var(--text-muted); margin-bottom: 48px;
-}
-.steps { display: grid; grid-template-columns: repeat(3, 1fr); gap: 32px; }
-.step-num {
-  font-family: var(--font-mono); font-size: 0.75rem; font-weight: 500;
-  color: var(--accent); margin-bottom: 12px; opacity: 0.7;
-}
-.step h3 { font-size: 1.15rem; font-weight: 700; margin-bottom: 8px; letter-spacing: -0.02em; }
-.step p { font-size: 0.875rem; color: var(--text-secondary); line-height: 1.6; }
-
-.metrics {
-  display: flex; gap: 48px; margin-top: 56px; padding-top: 32px; border-top: 1px solid var(--border-subtle);
-}
-.metric { text-align: left; }
-.metric-value { font-family: var(--font-mono); font-size: 1.6rem; font-weight: 700; color: var(--text-primary); letter-spacing: -0.03em; }
-.metric-label { font-size: 0.75rem; color: var(--text-muted); margin-top: 4px; text-transform: uppercase; letter-spacing: 0.06em; font-weight: 600; }
-
-/* --- FOOTER --- */
-footer {
-  padding: 32px; text-align: center; font-size: 0.8rem; color: var(--text-muted);
-  border-top: 1px solid var(--border-subtle);
-}
-
-/* --- RESPONSIVE --- */
-@media (max-width: 768px) {
-  .hero h1 { font-size: 2rem; }
-  .comparison { grid-template-columns: 1fr; }
-  .comparison iframe { height: 360px; }
-  .reports { grid-template-columns: 1fr; }
-  .steps { grid-template-columns: 1fr; gap: 24px; }
-  .metrics { flex-wrap: wrap; gap: 32px; }
-  .hero .stat-line { flex-wrap: wrap; gap: 16px; }
-}
-
-/* Scrollbar */
-::-webkit-scrollbar { width: 6px; }
-::-webkit-scrollbar-track { background: var(--bg-primary); }
-::-webkit-scrollbar-thumb { background: var(--border-subtle); border-radius: 3px; }
-
-/* Reduced motion */
-@media (prefers-reduced-motion: reduce) {
-  .timeline-item { animation: none; opacity: 1; transform: none; }
-}
+body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
+.pg{max-width:1120px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:color-mix(in oklch,var(--s0) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);margin:0 clamp(20px,4vw,48px)}
+.wm{font-weight:700;font-size:17px;letter-spacing:-0.03em;color:var(--t1)}.wm b{color:var(--ac);font-weight:700}
+.nl{color:var(--t3);text-decoration:none;font-size:13px;font-weight:500;transition:color .15s}.nl:hover{color:var(--t2)}
+.hero{padding:clamp(64px,10vh,120px) 0 48px;max-width:640px}
+.hero h1{font-size:clamp(36px,5.5vw,58px);font-weight:700;line-height:1.05;letter-spacing:-0.035em;color:var(--t1)}
+.hero h1 i{font-style:italic;color:var(--ac);font-weight:600}
+.hero .ld{margin-top:20px;font-size:clamp(15px,1.3vw,17px);line-height:1.65;color:var(--t2);max-width:520px}
+.sts{display:flex;gap:clamp(20px,3vw,36px);margin-top:28px;font-size:11.5px;font-weight:600;text-transform:uppercase;letter-spacing:.09em;color:var(--t3)}
+.sts strong{font-family:var(--mono);color:var(--ac);font-weight:600;font-size:12px}
+.ia{margin-top:48px;max-width:520px;border:1px solid var(--bd);border-radius:14px;padding:clamp(24px,3vw,32px);background:var(--s1);position:relative}
+.ia::after{content:'';position:absolute;top:-1px;left:40px;right:40px;height:1px;background:linear-gradient(90deg,transparent,var(--ac),transparent);opacity:.35}
+.lb{display:block;font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:8px}
+.fl{width:100%;background:var(--s0);border:1px solid var(--bd);border-radius:8px;padding:13px 14px;color:var(--t1);font-family:var(--sans);font-size:14px;line-height:1.5;outline:none;transition:border-color .2s}
+.fl:focus{border-color:var(--ac)}.fl::placeholder{color:var(--t3)}
+textarea.fl{resize:vertical;min-height:68px}
+.gr{margin-bottom:18px}.gr:last-of-type{margin-bottom:0}
+.tbs{display:flex;gap:1px;background:var(--s0);border-radius:8px;padding:3px;margin-bottom:10px}
+.tb{flex:1;padding:7px 10px;border:none;background:0;color:var(--t3);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s var(--eoq);text-transform:uppercase;letter-spacing:.07em}
+.tb.on{background:var(--s2);color:var(--t1)}.tb:hover:not(.on){color:var(--t2)}
+.pn{display:none}.pn.on{display:block}
+.dr{border:1.5px dashed var(--bd);border-radius:8px;padding:clamp(20px,3vw,30px);text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--s0);position:relative}
+.dr:hover{border-color:var(--ac);background:var(--acd)}.dr input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.dr-l{color:var(--t3);font-size:13px}.dr-l strong{color:var(--t2)}.dr img{max-height:100px;margin-top:12px;border-radius:6px}
+.ct{width:100%;padding:13px;border:none;border-radius:8px;background:var(--ac);color:oklch(15% .02 55);font-family:var(--sans);font-size:14px;font-weight:650;cursor:pointer;transition:background .2s,transform .12s var(--eoq);margin-top:20px;letter-spacing:-.01em}
+.ct:hover{background:var(--ach);transform:translateY(-1px)}.ct:active{transform:translateY(0)}.ct:disabled{opacity:.45;cursor:not-allowed;transform:none}
+.pr{display:none;margin-top:40px;max-width:520px}.pr.on{display:block}
+.prh{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+.prl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3)}
+.tmr{font-family:var(--mono);font-size:13px;color:var(--ac);font-weight:500}
+.tl{position:relative;padding-left:22px}.tl::before{content:'';position:absolute;left:4.5px;top:2px;bottom:2px;width:1.5px;background:var(--bd)}
+.ti{position:relative;padding:5px 0 5px 14px;font-size:13.5px;color:var(--t3);line-height:1.5;opacity:0;transform:translateY(5px);animation:si .25s var(--eoe) forwards}
+.ti::before{content:'';position:absolute;left:-20px;top:9px;width:9px;height:9px;border-radius:50%;background:var(--s2);border:1.5px solid var(--bd);transition:all .2s}
+.ti.now::before{border-color:var(--ac);background:var(--ac);box-shadow:0 0 8px var(--acd)}.ti.ok::before{border-color:var(--ok);background:var(--ok)}
+.ti.ok{color:var(--t3)}.ti.now{color:var(--t1)}
+.td{font-family:var(--mono);font-size:11px;color:var(--t3);margin-top:1px;display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:460px}
+@keyframes si{to{opacity:1;transform:translateY(0)}}
+.rs{display:none;margin-top:48px;padding-bottom:64px}.rs.on{display:block}
+.rsh{display:flex;justify-content:space-between;align-items:center;margin-bottom:18px}
+.rsb{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ok);display:flex;align-items:center;gap:7px}
+.rsb::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ok)}
+.rsm{font-family:var(--mono);font-size:12px;color:var(--t3)}
+.cp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
+.cpl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:7px}.cpl.af{color:var(--ac)}
+.cp iframe{width:100%;height:clamp(360px,50vh,520px);border:1px solid var(--bd);border-radius:10px;background:#fafafa}
+.lo{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:1px solid var(--bd);border-radius:7px;background:0;color:var(--t2);font-size:13px;font-weight:600;text-decoration:none;transition:all .15s}
+.lo:hover{border-color:var(--ac);color:var(--ac)}
+.rps{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
+.rp{background:var(--s1);border:1px solid var(--bd);border-radius:10px;padding:18px;max-height:340px;overflow-y:auto}
+.rp h4{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:10px}
+.rp pre{font-family:var(--mono);font-size:12px;line-height:1.7;color:var(--t2);white-space:pre-wrap;word-break:break-word}
+.hw{padding:clamp(56px,8vh,88px) 0;border-top:1px solid var(--bd);margin-top:40px}
+.hwl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--t3);margin-bottom:clamp(36px,5vw,52px)}
+.sps{display:grid;grid-template-columns:repeat(3,1fr);gap:clamp(24px,3vw,40px)}
+.sn{font-family:var(--mono);font-size:12px;color:var(--ac);opacity:.55;margin-bottom:10px}
+.sp h3{font-size:17px;font-weight:700;letter-spacing:-.02em;margin-bottom:7px}
+.sp p{font-size:14px;line-height:1.6;color:var(--t2)}
+.nms{display:flex;gap:clamp(28px,4vw,52px);margin-top:clamp(40px,5vh,60px);padding-top:clamp(24px,3vh,36px);border-top:1px solid var(--bd)}
+.nv{font-family:var(--mono);font-size:clamp(24px,3vw,30px);font-weight:600;color:var(--t1);letter-spacing:-.02em}
+.nlb{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--t3);margin-top:3px}
+footer{padding:28px 0;text-align:center;font-size:13px;color:var(--t3);border-top:1px solid var(--bd)}
+@media(max-width:720px){.cp,.rps,.sps{grid-template-columns:1fr}.nms{flex-wrap:wrap;gap:24px}}
+::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--s0)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
+@media(prefers-reduced-motion:reduce){.ti{animation:none;opacity:1;transform:none}}
 </style>
 </head>
 <body>
-
-<div class="hero-glow"></div>
-
-<nav>
-  <div class="logo">hypr<span>ads</span></div>
-  <a href="https://github.com/hitakshiA/hyprads" target="_blank">GitHub</a>
-</nav>
-
-<div class="container">
-
-  <!-- HERO -->
-  <section class="hero">
-    <h1>Stop sending ads to <em>generic</em> landing pages</h1>
-    <p class="sub">Your ads promise something specific. Your landing page should too. HyprAds clones your page, reads your ad creative, and rewrites headlines, CTAs, and copy to match — in minutes.</p>
-    <div class="stat-line">
-      <span><strong>25%</strong> avg. conversion lift</span>
-      <span><strong>6</strong> surgical edits per page</span>
-      <span><strong>~3 min</strong> end to end</span>
-    </div>
-  </section>
-
-  <!-- INPUT -->
-  <div class="input-card">
-    <div class="field-group">
-      <label class="field-label">Landing page URL</label>
-      <input id="urlInput" class="field-input" type="url" placeholder="https://your-landing-page.com" spellcheck="false" autocomplete="off">
-    </div>
-
-    <div class="field-group">
-      <label class="field-label">Ad creative</label>
-      <div class="tab-row">
-        <button class="tab-btn active" data-tab="text">Text</button>
-        <button class="tab-btn" data-tab="image">Image</button>
-        <button class="tab-btn" data-tab="url">URL</button>
-      </div>
-
-      <div id="tab-text" class="tab-panel active">
-        <textarea id="adText" class="field-input" placeholder='e.g. "50% off scheduling for startup teams — try free for 30 days"'></textarea>
-      </div>
-
-      <div id="tab-image" class="tab-panel">
-        <div class="file-drop" id="fileDrop">
-          <input type="file" id="fileInput" accept="image/*">
-          <div class="file-drop-text"><strong>Drop image</strong> or click to upload</div>
-          <img id="filePreview" class="file-preview" style="display:none">
-        </div>
-      </div>
-
-      <div id="tab-url" class="tab-panel">
-        <input id="adUrl" class="field-input" type="url" placeholder="https://facebook.com/ads/library/..." spellcheck="false">
-      </div>
-    </div>
-
-    <button id="submitBtn" class="btn-personalize">Personalize this page</button>
-  </div>
-
-  <!-- PROGRESS -->
-  <section id="progressSection" class="progress-section">
-    <div class="progress-header">
-      <span class="progress-title">Processing</span>
-      <span id="timer" class="progress-timer">0:00</span>
-    </div>
-    <div id="timeline" class="timeline"></div>
-  </section>
-
-  <!-- RESULT -->
-  <section id="resultSection" class="result-section">
-    <div class="result-header">
-      <span class="result-badge">Personalization complete</span>
-      <span id="resultMeta" class="result-meta"></span>
-    </div>
-
-    <div class="comparison">
-      <div class="comparison-pane">
-        <div class="comparison-label before">Original</div>
-        <iframe id="iframeOriginal" sandbox="allow-same-origin allow-scripts"></iframe>
-      </div>
-      <div class="comparison-pane">
-        <div class="comparison-label after">Personalized</div>
-        <iframe id="iframePersonalized" sandbox="allow-same-origin allow-scripts"></iframe>
-      </div>
-    </div>
-
-    <a id="viewFullBtn" class="btn-view-full" href="#" target="_blank">View personalized page &#8599;</a>
-
-    <div class="reports">
-      <div class="report-card">
-        <h3>Changes made</h3>
-        <pre id="changesReport"></pre>
-      </div>
-      <div class="report-card">
-        <h3>Ad analysis</h3>
-        <pre id="analysisReport"></pre>
-      </div>
-    </div>
-  </section>
-
-  <!-- HOW IT WORKS -->
-  <section class="how-section">
-    <h2>How it works</h2>
-    <div class="steps">
-      <div class="step">
-        <div class="step-num">01</div>
-        <h3>Clone</h3>
-        <p>Headless browser captures the full page — CSS inlined, assets preserved, framework JS stripped. A clean static copy in seconds.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">02</div>
-        <h3>Analyze</h3>
-        <p>Claude reads your ad creative — image or text — and extracts: offer, audience, tone, CTA intent, emotional angle. Structured analysis, not guessing.</p>
-      </div>
-      <div class="step">
-        <div class="step-num">03</div>
-        <h3>Personalize</h3>
-        <p>Surgical HTML edits: hero headline, subheadline, CTAs, trust signals. Every change traces to the ad. Anti-hallucination checks verify nothing was invented.</p>
-      </div>
-    </div>
-
-    <div class="metrics">
-      <div class="metric">
-        <div class="metric-value">~3 min</div>
-        <div class="metric-label">End to end</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">6</div>
-        <div class="metric-label">Surgical edits</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">$0.70</div>
-        <div class="metric-label">Per page</div>
-      </div>
-      <div class="metric">
-        <div class="metric-value">0</div>
-        <div class="metric-label">Hallucinated claims</div>
-      </div>
-    </div>
-  </section>
-
+<div class="pg">
+<nav><div class="wm">hypr<b>ads</b></div><a class="nl" href="https://github.com/hitakshiA/hyprads" target="_blank" rel="noopener">GitHub &#8599;</a></nav>
+<section class="hero">
+<h1>Stop sending ads to <i>generic</i> landing&nbsp;pages</h1>
+<p class="ld">Your ads promise something specific. Your landing page should too. HyprAds clones your page, reads the ad creative, and rewrites headlines, CTAs, and copy to match — in&nbsp;minutes.</p>
+<div class="sts"><span><strong>25%</strong> avg. lift</span><span><strong>6</strong> surgical edits</span><span><strong>~3 min</strong> end to end</span></div>
+</section>
+<div class="ia">
+<div class="gr"><label class="lb">Landing page URL</label><input id="url" class="fl" type="url" placeholder="https://your-landing-page.com" spellcheck="false" autocomplete="off"></div>
+<div class="gr"><label class="lb">Ad creative</label>
+<div class="tbs"><button class="tb on" data-t="text">Text</button><button class="tb" data-t="img">Image</button><button class="tb" data-t="link">URL</button></div>
+<div id="p-text" class="pn on"><textarea id="adtxt" class="fl" placeholder='e.g. "50% off scheduling for startup teams — try free for 30 days"'></textarea></div>
+<div id="p-img" class="pn"><div class="dr" id="drop"><input type="file" id="file" accept="image/*"><div class="dr-l"><strong>Drop image</strong> or click to browse</div><img id="preview" style="display:none"></div></div>
+<div id="p-link" class="pn"><input id="adurl" class="fl" type="url" placeholder="https://facebook.com/ads/library/..." spellcheck="false"></div>
 </div>
-
+<button id="go" class="ct">Personalize this page</button>
+</div>
+<div id="prog" class="pr"><div class="prh"><span class="prl">Processing</span><span id="clock" class="tmr">0:00</span></div><div id="tl" class="tl"></div></div>
+<div id="res" class="rs">
+<div class="rsh"><span class="rsb">Personalization complete</span><span id="meta" class="rsm"></span></div>
+<div class="cp"><div><div class="cpl">Original</div><iframe id="ifO"></iframe></div><div><div class="cpl af">Personalized</div><iframe id="ifP"></iframe></div></div>
+<a id="vl" class="lo" href="#" target="_blank">Open personalized page &#8599;</a>
+<div class="rps"><div class="rp"><h4>Changes</h4><pre id="rc"></pre></div><div class="rp"><h4>Ad analysis</h4><pre id="ra"></pre></div></div>
+</div>
+<section class="hw"><div class="hwl">How it works</div>
+<div class="sps">
+<div class="sp"><div class="sn">01</div><h3>Clone</h3><p>Headless browser captures the full page. CSS inlined, assets preserved, framework JS stripped. A clean static snapshot in&nbsp;seconds.</p></div>
+<div class="sp"><div class="sn">02</div><h3>Analyze</h3><p>Claude reads the ad creative — image or text — and extracts offer, audience, tone, CTA intent, and emotional angle.</p></div>
+<div class="sp"><div class="sn">03</div><h3>Personalize</h3><p>Surgical HTML edits: hero headline, subheadline, CTAs, trust signals. Every change traces to the ad. Anti-hallucination&nbsp;verified.</p></div>
+</div>
+<div class="nms"><div><div class="nv">~3 min</div><div class="nlb">End to end</div></div><div><div class="nv">6</div><div class="nlb">Surgical edits</div></div><div><div class="nv">$0.70</div><div class="nlb">Per page</div></div><div><div class="nv">0</div><div class="nlb">Hallucinated claims</div></div></div>
+</section>
+</div>
 <footer>Built for the Troopod AI PM assignment</footer>
-
 <script>
-const API = 'http://159.89.164.228:3000';
-
-// --- Tab switching ---
-document.querySelectorAll('.tab-btn').forEach(btn => {
-  btn.addEventListener('click', () => {
-    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
-    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
-    btn.classList.add('active');
-    document.getElementById('tab-' + btn.dataset.tab).classList.add('active');
-  });
-});
-
-// --- File upload ---
-const fileDrop = document.getElementById('fileDrop');
-const fileInput = document.getElementById('fileInput');
-const filePreview = document.getElementById('filePreview');
-let uploadedBase64 = null;
-
-fileDrop.addEventListener('dragover', e => { e.preventDefault(); fileDrop.classList.add('dragover'); });
-fileDrop.addEventListener('dragleave', () => fileDrop.classList.remove('dragover'));
-fileDrop.addEventListener('drop', e => { e.preventDefault(); fileDrop.classList.remove('dragover'); handleFile(e.dataTransfer.files[0]); });
-fileInput.addEventListener('change', () => handleFile(fileInput.files[0]));
-
-function handleFile(file) {
-  if (!file || !file.type.startsWith('image/')) return;
-  const reader = new FileReader();
-  reader.onload = () => {
-    uploadedBase64 = reader.result.split(',')[1];
-    filePreview.src = reader.result;
-    filePreview.style.display = 'block';
-    fileDrop.querySelector('.file-drop-text').textContent = file.name;
-  };
-  reader.readAsDataURL(file);
-}
-
-// --- Submit ---
-const submitBtn = document.getElementById('submitBtn');
-submitBtn.addEventListener('click', run);
-
-async function run() {
-  const url = document.getElementById('urlInput').value.trim();
-  if (!url) { document.getElementById('urlInput').focus(); return; }
-
-  const activeTab = document.querySelector('.tab-btn.active').dataset.tab;
-  const body = { url };
-
-  if (activeTab === 'text') {
-    const text = document.getElementById('adText').value.trim();
-    if (!text) { document.getElementById('adText').focus(); return; }
-    body.adCreativeText = text;
-  } else if (activeTab === 'image') {
-    if (!uploadedBase64) { fileInput.click(); return; }
-    body.adCreativeBase64 = uploadedBase64;
-  } else if (activeTab === 'url') {
-    const adUrl = document.getElementById('adUrl').value.trim();
-    if (!adUrl) { document.getElementById('adUrl').focus(); return; }
-    body.adCreativeUrl = adUrl;
-  }
-
-  // UI state
-  submitBtn.disabled = true;
-  submitBtn.textContent = 'Working...';
-  document.getElementById('progressSection').classList.add('visible');
-  document.getElementById('resultSection').classList.remove('visible');
-  document.getElementById('timeline').innerHTML = '';
-
-  // Timer
-  const startTime = Date.now();
-  const timerEl = document.getElementById('timer');
-  const timerInterval = setInterval(() => {
-    const elapsed = Math.floor((Date.now() - startTime) / 1000);
-    const min = Math.floor(elapsed / 60);
-    const sec = String(elapsed % 60).padStart(2, '0');
-    timerEl.textContent = `${min}:${sec}`;
-  }, 1000);
-
-  let lastStage = null;
-
-  try {
-    const res = await fetch(`${API}/personalize/stream`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(body),
-    });
-
-    const reader = res.body.getReader();
-    const decoder = new TextDecoder();
-
-    while (true) {
-      const { done, value } = await reader.read();
-      if (done) break;
-
-      const text = decoder.decode(value);
-      for (const line of text.split('\n')) {
-        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
-
-        const event = JSON.parse(line.slice(6));
-        addTimelineItem(event, lastStage);
-        lastStage = event.stage;
-
-        // Handle completion
-        if (event.stage === 'complete' && event.data) {
-          clearInterval(timerInterval);
-          showResult(event.data, url);
-        }
-        if (event.stage === 'error') {
-          clearInterval(timerInterval);
-          addTimelineItem({ stage: 'error', message: 'Error: ' + event.message }, lastStage);
-          submitBtn.disabled = false;
-          submitBtn.textContent = 'Personalize this page';
-        }
-      }
-    }
-  } catch (err) {
-    clearInterval(timerInterval);
-    addTimelineItem({ stage: 'error', message: 'Connection failed: ' + err.message }, lastStage);
-  }
-
-  submitBtn.disabled = false;
-  submitBtn.textContent = 'Personalize this page';
-}
-
-function addTimelineItem(event, previousStage) {
-  const timeline = document.getElementById('timeline');
-
-  // Mark previous items as done
-  const prev = timeline.querySelector('.timeline-item.active');
-  if (prev) { prev.classList.remove('active'); prev.classList.add('done'); }
-
-  const item = document.createElement('div');
-  item.className = 'timeline-item active';
-  item.style.animationDelay = '0s';
-
-  let msg = event.message;
-  let detail = '';
-
-  if (event.stage === 'personalizing' && event.data?.tool === 'Edit') {
-    // Show preview of the edit
-    const preview = event.message.replace('Editing page: ', '');
-    detail = preview;
-    msg = 'Editing HTML';
-  }
-
-  item.innerHTML = msg + (detail ? `<span class="detail">${detail}</span>` : '');
-  timeline.appendChild(item);
-  item.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
-}
-
-function showResult(data, originalUrl) {
-  const section = document.getElementById('resultSection');
-  section.classList.add('visible');
-
-  // Meta
-  const elapsed = document.getElementById('timer').textContent;
-  document.getElementById('resultMeta').textContent = `${data.sizeKB || '—'}KB · ${elapsed}`;
-
-  // Iframes
-  document.getElementById('iframeOriginal').src = originalUrl;
-  const personalizedUrl = `${API}${data.viewUrl}`;
-  document.getElementById('iframePersonalized').src = personalizedUrl;
-
-  // View full button
-  const btn = document.getElementById('viewFullBtn');
-  btn.href = personalizedUrl;
-
-  // Reports
-  document.getElementById('changesReport').textContent = data.changes || 'No report available';
-  document.getElementById('analysisReport').textContent = data.analysis || 'No analysis available';
-
-  // Scroll to result
-  section.scrollIntoView({ behavior: 'smooth', block: 'start' });
-}
+const A='http://159.89.164.228:3000';let b64=null;
+document.querySelectorAll('.tb').forEach(t=>{t.onclick=()=>{document.querySelectorAll('.tb').forEach(x=>x.classList.remove('on'));document.querySelectorAll('.pn').forEach(x=>x.classList.remove('on'));t.classList.add('on');document.getElementById('p-'+t.dataset.t).classList.add('on')}});
+const dr=document.getElementById('drop'),fi=document.getElementById('file'),pv=document.getElementById('preview');
+dr.ondragover=e=>{e.preventDefault()};dr.ondrop=e=>{e.preventDefault();hf(e.dataTransfer.files[0])};fi.onchange=()=>hf(fi.files[0]);
+function hf(f){if(!f||!f.type.startsWith('image/'))return;const r=new FileReader();r.onload=()=>{b64=r.result.split(',')[1];pv.src=r.result;pv.style.display='block'};r.readAsDataURL(f)}
+document.getElementById('go').onclick=run;
+async function run(){const url=document.getElementById('url').value.trim();if(!url){document.getElementById('url').focus();return}
+const tab=document.querySelector('.tb.on').dataset.t,bd={url};
+if(tab==='text'){const v=document.getElementById('adtxt').value.trim();if(!v){document.getElementById('adtxt').focus();return}bd.adCreativeText=v}
+else if(tab==='img'){if(!b64)return fi.click();bd.adCreativeBase64=b64}
+else{const v=document.getElementById('adurl').value.trim();if(!v){document.getElementById('adurl').focus();return}bd.adCreativeUrl=v}
+const btn=document.getElementById('go');btn.disabled=true;btn.textContent='Working\u2026';
+document.getElementById('prog').classList.add('on');document.getElementById('res').classList.remove('on');document.getElementById('tl').innerHTML='';
+const t0=Date.now(),ck=document.getElementById('clock');
+const iv=setInterval(()=>{const s=Math.floor((Date.now()-t0)/1000);ck.textContent=Math.floor(s/60)+':'+String(s%60).padStart(2,'0')},1000);
+try{const r=await fetch(A+'/personalize/stream',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(bd)});
+const rd=r.body.getReader(),dc=new TextDecoder();
+while(true){const{done,value}=await rd.read();if(done)break;
+for(const ln of dc.decode(value).split('\n')){if(!ln.startsWith('data: ')||ln==='data: [DONE]')continue;
+const ev=JSON.parse(ln.slice(6));as(ev);
+if(ev.stage==='complete'&&ev.data){clearInterval(iv);sr(ev.data,url)}
+if(ev.stage==='error'){clearInterval(iv);btn.disabled=false;btn.textContent='Personalize this page'}}}}catch(e){clearInterval(iv)}
+btn.disabled=false;btn.textContent='Personalize this page'}
+function as(ev){const tl=document.getElementById('tl');const p=tl.querySelector('.ti.now');if(p){p.classList.remove('now');p.classList.add('ok')}
+const el=document.createElement('div');el.className='ti now';let m=ev.message,d='';
+if(ev.stage==='personalizing'&&ev.data?.tool==='Edit'){d=ev.message.replace('Editing page: ','');m='Editing HTML'}
+el.innerHTML=m+(d?'<span class="td">'+d+'</span>':'');tl.appendChild(el);el.scrollIntoView({behavior:'smooth',block:'nearest'})}
+function sr(d,u){const s=document.getElementById('res');s.classList.add('on');
+document.getElementById('meta').textContent=(d.sizeKB||'\u2014')+'KB \u00b7 '+document.getElementById('clock').textContent;
+document.getElementById('ifO').src=u;const p=A+d.viewUrl;
+document.getElementById('ifP').src=p;document.getElementById('vl').href=p;
+document.getElementById('rc').textContent=d.changes||'No report';
+document.getElementById('ra').textContent=d.analysis||'No analysis';
+s.scrollIntoView({behavior:'smooth',block:'start'})}
 </script>
 </body>
 </html>
