@@ -1,173 +1,452 @@
 # HyprAds
 
-AI-powered landing page personalizer. Input an ad creative + landing page URL, get a personalized landing page that matches the ad using CRO principles.
+AI-powered landing page personalizer. User inputs an ad creative + landing page URL → gets a personalized landing page that matches the ad using CRO principles.
 
-Built for the [Troopod AI PM Assignment](mailto:nj@troopod.io).
+**Live API:** `http://159.89.164.228:3000`
 
-## How it works
+---
+
+## Architecture
 
 ```
-Ad Creative + Landing Page URL
-        │
-        ▼
-┌──────────────────────────────┐
-│  1. CLONE                    │
-│  Playwright headless browser │
-│  → self-contained HTML       │
-└──────────────┬───────────────┘
-               ▼
-┌──────────────────────────────┐
-│  2. ANALYZE                  │
-│  Claude (multimodal) reads   │
-│  the ad creative: offer,     │
-│  audience, tone, CTA, angle  │
-└──────────────┬───────────────┘
-               ▼
-┌──────────────────────────────┐
-│  3. PERSONALIZE              │
-│  Surgical HTML edits:        │
-│  headline, subheadline,      │
-│  CTAs, trust signals         │
-└──────────────┬───────────────┘
-               ▼
-     Personalized HTML + Report
+┌─────────────────────────────────────────────────────────┐
+│                     FRONTEND APP                         │
+│  User pastes URL + uploads/links ad creative             │
+│  Connects to /personalize/stream via SSE                 │
+│  Shows real-time progress → renders before/after         │
+└────────────────────────┬────────────────────────────────┘
+                         │ POST /personalize/stream
+                         ▼
+┌─────────────────────────────────────────────────────────┐
+│                   EXPRESS API (server.mjs)                │
+│  :3000 on DigitalOcean                                   │
+│                                                          │
+│  1. Receives { url, adCreative }                         │
+│  2. If ad is a URL → capture-ad.mjs screenshots it       │
+│  3. Spawns Claude Agent (Opus 4.6) with the skill        │
+│  4. Streams SSE events back to frontend                  │
+└────────────────────────┬────────────────────────────────┘
+                         │
+          ┌──────────────┼──────────────┐
+          ▼              ▼              ▼
+   clone-page.mjs   Claude Agent   capture-ad.mjs
+   (Playwright)     (reads SKILL.md,  (Playwright)
+   URL → HTML       edits HTML)     URL → screenshot
 ```
 
-## API
+---
 
-Live at `http://159.89.164.228:3000`
+## API Reference
 
-### `POST /clone` — Clone a website
+Base URL: `http://159.89.164.228:3000`
+
+### `GET /health`
 
 ```json
-{"url": "https://example.com"}
+// Response
+{"status": "ok", "uptime": 128.05}
 ```
 
-Returns: `{ jobId, html, sizeKB, elapsed }`
+---
 
-### `POST /personalize` — Clone + personalize (non-streaming)
+### `POST /clone`
 
-Three ways to pass ad creative:
+Clone a website to self-contained HTML. No AI, just Playwright. Fast (~20s).
 
 ```json
-// Text description
-{"url": "https://cal.com", "adCreativeText": "50% off scheduling for startups"}
+// Request
+{"url": "https://cal.com"}
 
-// URL to ad (image or webpage — auto-screenshotted via Playwright)
-{"url": "https://cal.com", "adCreativeUrl": "https://facebook.com/ads/library/..."}
-
-// Direct image upload (base64)
-{"url": "https://cal.com", "adCreativeBase64": "iVBORw0KGgo..."}
-```
-
-Returns: `{ jobId, html, changes, analysis, sizeKB, cost }`
-
-### `POST /personalize/stream` — Clone + personalize (SSE streaming)
-
-Same body as `/personalize`, returns Server-Sent Events:
-
-```
-stage: started          → Job started
-stage: ad_processing    → Processing ad creative...
-stage: cloning          → Cloning https://cal.com...
-stage: cloned           → Page cloned (1400KB)
-stage: analyzing_page   → Reading cloned page...
-stage: personalizing    → Editing page: "50% off scheduling..."
-stage: personalizing    → Editing page: "Start your free trial..."
-stage: verifying        → Running anti-hallucination checks...
-stage: report           → Writing change report...
-stage: complete         → { jobId, viewUrl, changes, analysis }
-```
-
-Frontend consumption:
-```javascript
-const res = await fetch('/personalize/stream', {
-  method: 'POST',
-  headers: { 'Content-Type': 'application/json' },
-  body: JSON.stringify({ url, adCreativeText })
-});
-for await (const chunk of res.body) {
-  const lines = new TextDecoder().decode(chunk).split('\n');
-  for (const line of lines) {
-    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
-      const event = JSON.parse(line.slice(6));
-      updateUI(event.stage, event.message);
-    }
-  }
+// Response
+{
+  "jobId": "eb1e6896",
+  "url": "https://cal.com",
+  "html": "<!DOCTYPE html>...",  // Full self-contained HTML
+  "sizeKB": 1362,
+  "elapsed": "20.2s"
 }
 ```
 
-### `GET /clone/:jobId` — View personalized page
-### `GET /clone/:jobId/changes` — Change report
-### `GET /clone/:jobId/analysis` — Ad analysis
+---
 
-## Ad creative input handling
+### `POST /personalize`
 
-| Input type | How it's handled |
-|-----------|-----------------|
-| **Text** (`adCreativeText`) | Passed directly to Claude agent (multimodal) |
-| **Image URL** (`adCreativeUrl`) | `Content-Type` checked — if `image/*`, downloaded directly. Otherwise Playwright screenshots the page. Covers Meta Ad Library, Google Ads, LinkedIn ads, tweets, any URL. |
-| **Base64 image** (`adCreativeBase64`) | Decoded and saved as PNG, passed to agent |
+Clone + personalize. Returns final result (waits for completion, ~3-5 min).
 
-## Key design decisions
+**Three ways to pass the ad creative:**
 
-**Static HTML, no framework JS.** Framework JS crashes cross-origin and overwrites CRO edits via hydration. The clone is a passive document the agent can surgically edit.
+```json
+// 1. Text description
+{
+  "url": "https://cal.com",
+  "adCreativeText": "50% off scheduling for startup teams — try free for 30 days"
+}
 
-**Existing page enhanced, not rebuilt.** The assignment says "the personalized page shouldn't be a completely new page." We clone the real page and only modify copy.
+// 2. URL to ad (webpage gets screenshotted, image gets downloaded)
+{
+  "url": "https://cal.com",
+  "adCreativeUrl": "https://www.facebook.com/ads/library/?id=123456"
+}
 
-**CRO framework from battle-tested sources.** Synthesized from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (20K+ stars) — page-cro, copywriting, ad-creative, and marketing-psychology.
+// 3. Base64 image upload
+{
+  "url": "https://cal.com",
+  "adCreativeBase64": "iVBORw0KGgoAAAANSUhEUg..."
+}
+```
 
-**Real-time progress via SSE.** The streaming endpoint lets frontends show each stage as it happens instead of a loading spinner.
+```json
+// Response
+{
+  "jobId": "8cfcab56",
+  "url": "https://cal.com",
+  "html": "<!DOCTYPE html>...",     // Personalized HTML
+  "changes": "# Personalization Report\n...",  // Markdown report
+  "analysis": "# Ad Creative Analysis\n...",   // Ad analysis
+  "sizeKB": 1400,
+  "cost": 0.71
+}
+```
+
+---
+
+### `POST /personalize/stream` ⭐ Recommended
+
+Same input as `/personalize`, but returns **Server-Sent Events** for real-time progress.
+
+```json
+// Request (same as /personalize)
+{
+  "url": "https://dub.co",
+  "adCreativeText": "Shorten links, track clicks, grow revenue — free for startups"
+}
+```
+
+**SSE event stream:**
+
+```
+data: {"stage":"started","message":"Job 8cfcab56 started","data":{"jobId":"8cfcab56","url":"https://dub.co"}}
+data: {"stage":"ad_processing","message":"Using text ad creative"}
+data: {"stage":"agent_starting","message":"Starting Claude agent..."}
+data: {"stage":"cloning","message":"Cloning https://dub.co..."}
+data: {"stage":"cloned","message":"Page cloned (2135KB)","data":{"sizeKB":2135}}
+data: {"stage":"analyzing_page","message":"Reading cloned page..."}
+data: {"stage":"personalizing","message":"Editing page: \"Shorten links, track clicks, grow revenue\""}
+data: {"stage":"personalizing","message":"Editing page: \"Start Free for Startups\""}
+data: {"stage":"verifying","message":"Running anti-hallucination checks..."}
+data: {"stage":"report","message":"Writing change report..."}
+data: {"stage":"complete","message":"Personalization complete","data":{"jobId":"8cfcab56","viewUrl":"/clone/8cfcab56","changes":"...","analysis":"..."}}
+data: [DONE]
+```
+
+**All SSE stages:**
+
+| Stage | Meaning | When it fires |
+|-------|---------|---------------|
+| `started` | Job created | Immediately |
+| `ad_processing` | Handling ad input | After validation |
+| `ad_captured` | Ad URL screenshotted | After Playwright capture |
+| `agent_starting` | Claude agent spawned | Before first LLM call |
+| `cloning` | Playwright cloning page | When clone-page.mjs runs |
+| `cloned` | Clone complete | Clone script finished (includes sizeKB) |
+| `analyzing_page` | Reading cloned HTML | Agent reads the file |
+| `analyzing_ad` | Reading ad creative | Agent reads the image/text |
+| `personalizing` | Making an edit | Each Edit tool call (includes preview) |
+| `verifying` | Anti-hallucination check | Agent verifies edits |
+| `report` | Writing reports | ad-analysis.md or changes.md |
+| `finishing` | Wrapping up | Agent's final summary |
+| `agent_done` | Agent complete | Includes result text and cost |
+| `complete` | Everything done | Includes jobId, viewUrl, changes, analysis |
+| `error` | Something failed | Includes error message |
+
+---
+
+### `GET /clone/:jobId`
+
+Serves the personalized HTML page directly. Can be iframed or opened in a new tab.
+
+```
+http://159.89.164.228:3000/clone/8cfcab56
+```
+
+### `GET /clone/:jobId/changes`
+
+Returns the change report (Markdown).
+
+### `GET /clone/:jobId/analysis`
+
+Returns the ad creative analysis (Markdown).
+
+---
+
+## Frontend Integration Guide
+
+### Minimal example (vanilla JS)
+
+```html
+<!DOCTYPE html>
+<html>
+<body>
+  <input id="url" placeholder="Landing page URL" value="https://cal.com" />
+  <textarea id="ad" placeholder="Ad creative text">50% off for startups</textarea>
+  <button onclick="run()">Personalize</button>
+  <div id="status"></div>
+  <iframe id="result" style="width:100%;height:600px;border:1px solid #ccc;display:none;"></iframe>
+
+  <script>
+    const API = 'http://159.89.164.228:3000';
+
+    async function run() {
+      const url = document.getElementById('url').value;
+      const adCreativeText = document.getElementById('ad').value;
+      const status = document.getElementById('status');
+      const iframe = document.getElementById('result');
+
+      status.textContent = 'Starting...';
+      iframe.style.display = 'none';
+
+      const res = await fetch(`${API}/personalize/stream`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url, adCreativeText }),
+      });
+
+      const reader = res.body.getReader();
+      const decoder = new TextDecoder();
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        const text = decoder.decode(value);
+        for (const line of text.split('\n')) {
+          if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+
+          const event = JSON.parse(line.slice(6));
+          status.textContent = `[${event.stage}] ${event.message}`;
+
+          // When complete, show the personalized page in iframe
+          if (event.stage === 'complete' && event.data?.viewUrl) {
+            iframe.src = `${API}${event.data.viewUrl}`;
+            iframe.style.display = 'block';
+          }
+        }
+      }
+    }
+  </script>
+</body>
+</html>
+```
+
+### React example
+
+```jsx
+import { useState } from 'react';
+
+const API = 'http://159.89.164.228:3000';
+
+export default function Personalizer() {
+  const [url, setUrl] = useState('');
+  const [adText, setAdText] = useState('');
+  const [stages, setStages] = useState([]);
+  const [result, setResult] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  async function handleSubmit(e) {
+    e.preventDefault();
+    setLoading(true);
+    setStages([]);
+    setResult(null);
+
+    const res = await fetch(`${API}/personalize/stream`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ url, adCreativeText: adText }),
+    });
+
+    const reader = res.body.getReader();
+    const decoder = new TextDecoder();
+
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+
+      for (const line of decoder.decode(value).split('\n')) {
+        if (!line.startsWith('data: ') || line === 'data: [DONE]') continue;
+        const event = JSON.parse(line.slice(6));
+
+        setStages(prev => [...prev, event]);
+
+        if (event.stage === 'complete') {
+          setResult(event.data);
+          setLoading(false);
+        }
+        if (event.stage === 'error') {
+          setLoading(false);
+        }
+      }
+    }
+  }
+
+  return (
+    <div>
+      <form onSubmit={handleSubmit}>
+        <input value={url} onChange={e => setUrl(e.target.value)} placeholder="Landing page URL" />
+        <textarea value={adText} onChange={e => setAdText(e.target.value)} placeholder="Ad creative text" />
+        <button type="submit" disabled={loading}>
+          {loading ? 'Personalizing...' : 'Personalize'}
+        </button>
+      </form>
+
+      {/* Progress stages */}
+      <div>
+        {stages.map((s, i) => (
+          <div key={i} style={{ opacity: i === stages.length - 1 ? 1 : 0.5 }}>
+            [{s.stage}] {s.message}
+          </div>
+        ))}
+      </div>
+
+      {/* Result iframe */}
+      {result && (
+        <iframe
+          src={`${API}${result.viewUrl}`}
+          style={{ width: '100%', height: '80vh', border: '1px solid #ccc' }}
+        />
+      )}
+    </div>
+  );
+}
+```
+
+### Handling image uploads (base64)
+
+```javascript
+// File input → base64
+const fileInput = document.getElementById('adImage');
+const file = fileInput.files[0];
+const reader = new FileReader();
+reader.onload = () => {
+  const base64 = reader.result.split(',')[1]; // strip data:image/png;base64,
+  fetch(`${API}/personalize/stream`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ url, adCreativeBase64: base64 }),
+  });
+};
+reader.readAsDataURL(file);
+```
+
+### Handling ad URL input
+
+```javascript
+// User pastes a URL to an ad (Meta Ad Library, Google Ads, tweet, any webpage)
+fetch(`${API}/personalize/stream`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    url: 'https://cal.com',
+    adCreativeUrl: 'https://www.facebook.com/ads/library/?id=123456'
+  }),
+});
+// The server auto-detects if the URL is a direct image or a webpage
+// Images are downloaded directly, webpages are screenshotted via Playwright
+```
+
+---
+
+## What the frontend should show
+
+### Input screen
+- Text field for landing page URL
+- Three-way toggle for ad creative input: **Text** / **Image upload** / **URL**
+- "Personalize" button
+
+### Processing screen (SSE stages)
+- Step-by-step progress indicator showing each stage
+- Suggested UX: vertical timeline or stepper with stage names and messages
+- The `personalizing` events include preview text of each edit being made
+
+### Result screen
+- **Before/after comparison**: original URL in one iframe, `GET /clone/:jobId` in the other
+- **Change report**: render the `changes` markdown from the `complete` event
+- **Ad analysis**: render the `analysis` markdown from the `complete` event
+- **Direct link**: `http://159.89.164.228:3000/clone/:jobId` — shareable URL to the personalized page
+
+---
+
+## SSE Event Schema (TypeScript)
+
+```typescript
+interface SSEEvent {
+  stage:
+    | 'started'        // Job created
+    | 'ad_processing'  // Handling ad input
+    | 'ad_captured'    // Ad URL screenshotted
+    | 'agent_starting' // Claude agent spawned
+    | 'cloning'        // Playwright running
+    | 'cloned'         // Clone finished
+    | 'analyzing_page' // Agent reading HTML
+    | 'analyzing_ad'   // Agent reading ad
+    | 'personalizing'  // Agent making edits
+    | 'verifying'      // Anti-hallucination check
+    | 'report'         // Writing reports
+    | 'finishing'      // Agent wrapping up
+    | 'agent_done'     // Agent process complete
+    | 'complete'       // Everything done, files ready
+    | 'error';         // Something failed
+
+  message: string;     // Human-readable status
+  timestamp: number;   // Unix ms
+
+  data?: {
+    jobId?: string;
+    url?: string;
+    sizeKB?: number;
+    viewUrl?: string;       // GET this to render personalized page
+    changes?: string;       // Markdown change report
+    analysis?: string;      // Markdown ad analysis
+    result?: string;        // Agent's final summary
+    cost?: number;          // USD cost of this run
+    tool?: string;          // Which tool was used (for 'personalizing')
+  };
+}
+```
+
+---
 
 ## Project structure
 
 ```
-server.mjs                         # Express API with SSE streaming
+server.mjs                         # Express API — clone, personalize, SSE streaming
 scripts/
-  clone-page.mjs                   # Playwright website cloner
-  capture-ad.mjs                   # Ad creative URL → screenshot
+  clone-page.mjs                   # Playwright website cloner (URL → static HTML)
+  capture-ad.mjs                   # Ad URL → screenshot (auto-detects image vs webpage)
 .claude/
   skills/
     clone-and-personalize/
-      SKILL.md                     # Full CRO pipeline skill
-CLAUDE.md                          # Project context for the agent
+      SKILL.md                     # CRO personalization skill for Claude agent
+CLAUDE.md                          # Project context the agent reads on startup
+package.json                       # Dependencies: express, playwright
 ```
 
-## CRO personalization pipeline
-
-1. **Clone** — `clone-page.mjs` produces static HTML
-2. **Analyze** — Extract ad signals: offer, audience, angle, tone, CTA intent
-3. **Personalize** — Surgical edits in priority order: hero headline (80% impact) → subheadline → CTA → trust signals
-4. **Anti-hallucination checks** — Every claim must trace to the ad or original page
-5. **Output** — Modified HTML + ad analysis + change report with rationale
-
-## Handling edge cases
-
-| Issue | How it's handled |
-|-------|-----------------|
-| **Random changes** | Edit priority system — only headline, subheadline, CTA, trust signals touched |
-| **Broken UI** | No JS/CSS/layout changes. Only text content inside existing tags modified |
-| **Hallucinations** | 5-point anti-hallucination checklist. Every claim traces to ad or original page |
-| **Inconsistent outputs** | Structured pipeline with explicit phases. Ad analysis saved before edits begin |
-| **Framework JS crashes** | All scripts stripped during cloning |
-| **WebGL/canvas** | Animated canvases detected and removed. Static ones frozen to PNG |
-| **Lazy-loaded content** | Full-page scroll triggers all lazy loading before extraction |
-
-## Deployment
+## Server deployment
 
 Running on DigitalOcean (2 vCPU, 2GB RAM, Ubuntu 24.04).
 
 ```bash
-# Server
 npm install
-npm run setup  # installs headless Chromium
-npm start      # starts API on port 3000
+npm run setup       # installs headless Chromium
+npm start           # starts API on :3000
 ```
 
-Requires Claude Code CLI authenticated (`claude` command must be logged in).
+Requires Claude Code CLI authenticated as a non-root user with `--dangerously-skip-permissions` enabled.
 
 ## Cost per request
 
-- Clone only: ~$0 (no LLM, just Playwright)
-- Personalize: ~$0.70-1.10 (Claude Opus 4.6, ~40 turns)
-- Dominant cost is tokens, not compute
+| Endpoint | Cost | Time |
+|----------|------|------|
+| `/clone` | $0 (no AI) | ~20s |
+| `/personalize` | ~$0.70-1.10 | ~3-5 min |
+
+Dominant cost is Claude Opus 4.6 tokens, not compute.
