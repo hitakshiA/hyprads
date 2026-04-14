@@ -333,8 +333,23 @@ async function runPersonalization(body) {
   return { jobId, url, html, changes, analysis, sizeKB: Math.round(html.length / 1024), cost: agentResult.total_cost_usd || null };
 }
 
+// HTTP server
 const server = app.listen(PORT, '0.0.0.0', () => {
   console.log(`HyprAds API running on http://0.0.0.0:${PORT}`);
 });
 server.timeout = 600000;
 server.keepAliveTimeout = 610000;
+
+// HTTPS server (if certs exist)
+import https from 'https';
+const certPath = '/etc/letsencrypt/live/hyprads.duckdns.org';
+try {
+  const httpsServer = https.createServer({
+    cert: readFileSync(`${certPath}/fullchain.pem`),
+    key: readFileSync(`${certPath}/privkey.pem`),
+  }, app).listen(443, '0.0.0.0', () => {
+    console.log('HyprAds HTTPS running on https://0.0.0.0:443');
+  });
+  httpsServer.timeout = 600000;
+  httpsServer.keepAliveTimeout = 610000;
+} catch(e) { console.log('No HTTPS certs found, HTTP only'); }
