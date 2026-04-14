@@ -21,8 +21,11 @@ This is NOT a page rebuild. The assignment spec says: "the personalized page sho
 `$ARGUMENTS` contains a landing page URL and ad creative context.
 
 Parse:
-- **URL**: The first URL in the arguments
-- **Ad creative**: Everything else — could be text description, path to an image file, or a link to an ad
+- **URL**: The first URL in the arguments (starts with `http`)
+- **Ad creative**: Everything else. Determine the type:
+  - **File path** (contains `/` and ends in `.png`, `.jpg`, `.jpeg`, `.webp`): Use the **Read** tool to view the image. Claude is multimodal — reading an image file shows you the visual content. Extract signals from what you see.
+  - **Text in quotes**: A text description of the ad creative. Extract signals from the text.
+  - **URL** (starts with `http` but is not the landing page): This is a link to an ad. Use **Bash** to run `node scripts/capture-ad.mjs <url> /tmp/ad-capture.png` to screenshot it, then **Read** the resulting image.
 
 ---
 
@@ -42,7 +45,11 @@ This produces:
 
 ## Phase 2: Analyze the Ad Creative
 
-Extract these signals from the ad creative (text or image):
+**If the ad creative is an image file**, use the Read tool on the file path. You will see the visual content of the ad — headlines, imagery, colors, CTAs, logos, product shots. Describe what you see, then extract signals.
+
+**If the ad creative is text**, analyze the text directly.
+
+Extract these signals from the ad creative:
 
 ### Core Signals
 
