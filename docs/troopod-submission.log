@@ -1,4 +1,4 @@
-This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2026.1.31)  15 APR 2026 00:24
+This is pdfTeX, Version 3.141592653-2.6-1.40.27 (TeX Live 2025) (preloaded format=pdflatex 2026.1.31)  15 APR 2026 00:30
 entering extended mode
  restricted \write18 enabled.
  %&-line parsing enabled.
@@ -1010,11 +1010,11 @@ Package microtype Info: Loading generic protrusion settings for font family
 (microtype)             `lmtt' (encoding: T1).
 (microtype)             For optimal results, create family-specific settings.
 (microtype)             See the microtype manual for details.
-<architecture.png, id=105, 6231.28pt x 2885.78125pt>
-File: architecture.png Graphic file (type png)
-<use architecture.png>
-Package pdftex.def Info: architecture.png  used on input line 128.
-(pdftex.def)             Requested size: 469.75502pt x 217.52509pt.
+<architecture-v2.png, id=105, 742.775pt x 975.645pt>
+File: architecture-v2.png Graphic file (type png)
+<use architecture-v2.png>
+Package pdftex.def Info: architecture-v2.png  used on input line 128.
+(pdftex.def)             Requested size: 469.75502pt x 617.04155pt.
 
 
 [1
@@ -1022,8 +1022,11 @@ Package pdftex.def Info: architecture.png  used on input line 128.
 {/usr/local/texlive/2025basic/texmf-var/fonts/map/pdftex/updmap/pdftex.map}{/us
 r/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ec.enc}{/usr/local/t
 exlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-mathsy.enc}]
+Overfull \vbox (44.26834pt too high) has occurred while \output is active []
 
-[2 <./architecture.png>]
+
+
+[2 <./architecture-v2.png (PNG copy)>]
 LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
 70.
 
@@ -1031,9 +1034,11 @@ LaTeX Font Info:    Trying to load font information for TS1+lmr on input line 1
 File: ts1lmr.fd 2015/05/01 v1.6.1 Font defs for Latin Modern
 )
 
-[3{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
+[3]
 
-[4]
+[4{/usr/local/texlive/2025basic/texmf-dist/fonts/enc/dvips/lm/lm-ts1.enc}]
+
+[5]
 LaTeX Font Info:    External font `lmex10' loaded for size
 (Font)              <9> on input line 281.
 
@@ -1066,9 +1071,9 @@ Underfull \hbox (badness 10000) in paragraph at lines 307--308
 
 
 
-[5]
-
 [6]
+
+[7]
 ! Undefined control sequence.
 l.402 ...r Playwright. They care that their \rupee
                                                    14L monthly ad spend is g...
@@ -1080,8 +1085,6 @@ and I'll forget about whatever was undefined.
 
 
 
-[7]
-
 [8] (./troopod-submission.aux)
  ***********
 LaTeX2e <2024-11-01> patch level 2
@@ -1092,12 +1095,12 @@ Package rerunfilecheck Info: File `troopod-submission.out' has not changed.
  ) 
 Here is how much of TeX's memory you used:
  27737 strings out of 474662
- 507668 string characters out of 5751109
- 931494 words of memory out of 5000000
+ 507689 string characters out of 5751109
+ 932494 words of memory out of 5000000
  50135 multiletter control sequences out of 15000+600000
  623990 words of font info for 143 fonts, out of 8000000 for 9000
  319 hyphenation exceptions out of 8191
- 84i,13n,87p,1015b,606s stack positions out of 10000i,1000n,20000p,200000b,200000s
+ 84i,13n,87p,1015b,625s stack positions out of 10000i,1000n,20000p,200000b,200000s
 </usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx10.pfb></u
 sr/local/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx12.pfb></usr/lo
 cal/texlive/2025basic/texmf-dist/fonts/type1/public/lm/lmbx9.pfb></usr/local/te
@@ -1110,7 +1113,7 @@ ts/type1/public/lm/lmsy10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/ty
 pe1/public/lm/lmsy9.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/pu
 blic/lm/lmtt10.pfb></usr/local/texlive/2025basic/texmf-dist/fonts/type1/public/
 lm/lmtt9.pfb>
-Output written on troopod-submission.pdf (8 pages, 638757 bytes).
+Output written on troopod-submission.pdf (8 pages, 361467 bytes).
 PDF statistics:
  254 PDF objects out of 1000 (max. 8388607)
  215 compressed objects within 3 object streams
