@@ -123,22 +123,13 @@ The system runs as an Express.js API server wrapping the \textbf{Claude Agent SD
 
 \subsection{Pipeline Overview}
 
-\begin{center}
-\small
-\begin{tabular}{cl}
-\textcolor{accent}{\textbf{INPUT}} & Ad Creative (text / image / URL) + Landing Page URL \\[4pt]
-$\downarrow$ & \\
-\textcolor{accent}{\textbf{1. CLONE}} & Playwright headless $\rightarrow$ scroll $\rightarrow$ bake styles $\rightarrow$ inline CSS $\rightarrow$ strip JS \\[4pt]
-$\downarrow$ & \\
-\textcolor{accent}{\textbf{2. ANALYZE}} & Claude Opus 4.6 (multimodal) $\rightarrow$ offer, audience, tone, CTA intent \\[4pt]
-$\downarrow$ & \\
-\textcolor{accent}{\textbf{3. PERSONALIZE}} & Edit tool: headline $\rightarrow$ subheadline $\rightarrow$ CTA $\rightarrow$ trust signals \\[4pt]
-$\downarrow$ & \\
-\textcolor{accent}{\textbf{4. VISUAL QA}} & Screenshot $\rightarrow$ compare with original $\rightarrow$ fix broken elements $\rightarrow$ repeat \\[4pt]
-$\downarrow$ & \\
-\textcolor{accent}{\textbf{OUTPUT}} & Personalized HTML + Change Report + Ad Analysis \\
-\end{tabular}
-\end{center}
+\begin{figure}[H]
+\centering
+\includegraphics[width=\textwidth]{architecture.png}
+\caption{HyprAds Agentic CRO Pipeline --- from user input through the Claude Agent SDK's 4-phase personalization loop to the final output. The red feedback arrow between Phase 4 (Visual QA) and Phase 3 (Personalize) represents the self-correcting loop that fixes broken UI elements.}
+\end{figure}
+
+\noindent The pipeline flows left to right: the performance marketer submits a URL and ad creative, the Express API spawns a Claude Agent SDK session, the agent runs four phases (clone, analyze, personalize, visual QA) using Playwright and the Edit tool, and outputs personalized HTML with change reports. The CRO Knowledge Base (top) feeds into the agent's SKILL.md, encoding message match, headline formulas, and anti-hallucination rules from battle-tested open-source marketing skills.
 
 \subsection{Why This Architecture}
 
