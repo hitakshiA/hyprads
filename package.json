@@ -4,10 +4,12 @@
   "type": "module",
   "description": "AI-powered ad-to-landing-page personalizer using Claude Agent SDK",
   "scripts": {
+    "start": "node server.mjs",
     "clone": "node scripts/clone-page.mjs",
     "setup": "npx playwright install chromium"
   },
   "dependencies": {
+    "express": "^4.21.0",
     "playwright": "^1.59.1"
   }
 }

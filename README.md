@@ -13,173 +13,161 @@ Ad Creative + Landing Page URL
 ┌──────────────────────────────┐
 │  1. CLONE                    │
 │  Playwright headless browser │
-│  → scrolls full page         │
-│  → inlines all CSS           │
-│  → fixes asset URLs          │
-│  → strips framework JS       │
-│  → outputs static HTML       │
+│  → self-contained HTML       │
 └──────────────┬───────────────┘
-               │
                ▼
 ┌──────────────────────────────┐
 │  2. ANALYZE                  │
 │  Claude (multimodal) reads   │
-│  the ad creative and         │
-│  extracts: offer, audience,  │
-│  tone, CTA intent, angle     │
+│  the ad creative: offer,     │
+│  audience, tone, CTA, angle  │
 └──────────────┬───────────────┘
-               │
                ▼
 ┌──────────────────────────────┐
 │  3. PERSONALIZE              │
 │  Surgical HTML edits:        │
-│  - Hero headline             │
-│  - Subheadline               │
-│  - CTA button text           │
-│  - Trust signals (if needed) │
-│  Using CRO message-match     │
+│  headline, subheadline,      │
+│  CTAs, trust signals         │
 └──────────────┬───────────────┘
-               │
                ▼
-     Personalized HTML
-     (self-contained, servable)
+     Personalized HTML + Report
 ```
 
-## Key design decisions
+## API
 
-**Static HTML, no framework JS.** Framework JS (React/Next.js) crashes when served cross-origin and overwrites CRO edits via hydration. The clone is a passive document the agent can surgically edit.
+Live at `http://159.89.164.228:3000`
 
-**Existing page enhanced, not rebuilt.** The assignment says "the personalized page shouldn't be a completely new page." We clone the real page and only change headlines, CTAs, and copy to match the ad.
+### `POST /clone` — Clone a website
 
-**CRO framework synthesized from battle-tested sources.** The personalization skill draws from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (20K+ stars) — specifically page-cro, copywriting, ad-creative, and marketing-psychology — combined into one purpose-built pipeline.
-
-## Quick start
-
-```bash
-# Install
-npm install
-npm run setup  # installs headless Chromium
-
-# Clone a website
-npm run clone -- https://resend.com clones/resend
-
-# Full pipeline (via Claude Agent SDK)
-# See "Agent SDK Integration" below
+```json
+{"url": "https://example.com"}
 ```
 
-## Project structure
+Returns: `{ jobId, html, sizeKB, elapsed }`
+
+### `POST /personalize` — Clone + personalize (non-streaming)
+
+Three ways to pass ad creative:
+
+```json
+// Text description
+{"url": "https://cal.com", "adCreativeText": "50% off scheduling for startups"}
+
+// URL to ad (image or webpage — auto-screenshotted via Playwright)
+{"url": "https://cal.com", "adCreativeUrl": "https://facebook.com/ads/library/..."}
+
+// Direct image upload (base64)
+{"url": "https://cal.com", "adCreativeBase64": "iVBORw0KGgo..."}
+```
+
+Returns: `{ jobId, html, changes, analysis, sizeKB, cost }`
+
+### `POST /personalize/stream` — Clone + personalize (SSE streaming)
+
+Same body as `/personalize`, returns Server-Sent Events:
 
 ```
-scripts/
-  clone-page.mjs              # Playwright-based website cloner
-.claude/
-  skills/
-    clone-and-personalize/
-      SKILL.md                 # Full pipeline skill for Claude Agent SDK
-CLAUDE.md                      # Project context for the agent
+stage: started          → Job started
+stage: ad_processing    → Processing ad creative...
+stage: cloning          → Cloning https://cal.com...
+stage: cloned           → Page cloned (1400KB)
+stage: analyzing_page   → Reading cloned page...
+stage: personalizing    → Editing page: "50% off scheduling..."
+stage: personalizing    → Editing page: "Start your free trial..."
+stage: verifying        → Running anti-hallucination checks...
+stage: report           → Writing change report...
+stage: complete         → { jobId, viewUrl, changes, analysis }
 ```
 
-## The cloning script
-
-`scripts/clone-page.mjs` takes any URL and produces a self-contained HTML file.
-
-**What it does:**
-- Launches headless Chromium via Playwright
-- Scrolls the full page (triggers lazy loading, IntersectionObserver, scroll-driven classes)
-- Detects animated canvases (WebGL/Three.js) by comparing two screenshots 1s apart — removes them cleanly
-- Freezes static canvases to PNG via element screenshot
-- Fetches all external CSS on same-origin (no CORS), inlines it
-- Strips all `<script>`, `<noscript>`, `<iframe>` tags
-- Rewrites all relative URLs to absolute (src, href, poster, srcset, CSS url())
-- Handles Next.js `/_next/image?url=` patterns in srcset
-- Injects a tiny video-autoplay helper as the only script
-- Outputs a single HTML file + reference screenshot
-
-**Tested on:** resend.com, cal.com, dub.co — 93-95% visual fidelity.
-
-## Agent SDK integration
-
-The skill at `.claude/skills/clone-and-personalize/SKILL.md` is designed for the [Claude Agent SDK](https://docs.claude.com/en/docs/agent-sdk/custom-tools).
-
-```typescript
-import { query } from "@anthropic-ai/claude-agent-sdk";
-
-for await (const message of query({
-  prompt: '/clone-and-personalize https://resend.com "50% off email API for dev teams — start free trial"',
-  options: {
-    allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
-    permissionMode: "bypassPermissions",
-    settingSources: ["project"],
-  }
-})) {
-  if ("result" in message) {
-    // message.result contains the personalization report
-    // clones/output/index.html contains the personalized HTML
+Frontend consumption:
+```javascript
+const res = await fetch('/personalize/stream', {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ url, adCreativeText })
+});
+for await (const chunk of res.body) {
+  const lines = new TextDecoder().decode(chunk).split('\n');
+  for (const line of lines) {
+    if (line.startsWith('data: ') && line !== 'data: [DONE]') {
+      const event = JSON.parse(line.slice(6));
+      updateUI(event.stage, event.message);
+    }
   }
 }
 ```
 
-### As a REST API
+### `GET /clone/:jobId` — View personalized page
+### `GET /clone/:jobId/changes` — Change report
+### `GET /clone/:jobId/analysis` — Ad analysis
 
-```typescript
-import { query } from "@anthropic-ai/claude-agent-sdk";
-import express from "express";
-import { readFileSync } from "fs";
+## Ad creative input handling
 
-const app = express();
-app.use(express.json());
+| Input type | How it's handled |
+|-----------|-----------------|
+| **Text** (`adCreativeText`) | Passed directly to Claude agent (multimodal) |
+| **Image URL** (`adCreativeUrl`) | `Content-Type` checked — if `image/*`, downloaded directly. Otherwise Playwright screenshots the page. Covers Meta Ad Library, Google Ads, LinkedIn ads, tweets, any URL. |
+| **Base64 image** (`adCreativeBase64`) | Decoded and saved as PNG, passed to agent |
 
-app.post("/personalize", async (req, res) => {
-  const { url, adCreative } = req.body;
+## Key design decisions
 
-  for await (const msg of query({
-    prompt: `/clone-and-personalize ${url} "${adCreative}"`,
-    options: {
-      allowedTools: ["Read", "Write", "Edit", "Bash", "Glob", "Grep"],
-      permissionMode: "bypassPermissions",
-      settingSources: ["project"],
-    }
-  })) {
-    if ("result" in msg) {
-      const html = readFileSync("clones/output/index.html", "utf8");
-      res.json({ html, report: msg.result });
-    }
-  }
-});
+**Static HTML, no framework JS.** Framework JS crashes cross-origin and overwrites CRO edits via hydration. The clone is a passive document the agent can surgically edit.
 
-app.listen(3000);
+**Existing page enhanced, not rebuilt.** The assignment says "the personalized page shouldn't be a completely new page." We clone the real page and only modify copy.
+
+**CRO framework from battle-tested sources.** Synthesized from [coreyhaines31/marketingskills](https://github.com/coreyhaines31/marketingskills) (20K+ stars) — page-cro, copywriting, ad-creative, and marketing-psychology.
+
+**Real-time progress via SSE.** The streaming endpoint lets frontends show each stage as it happens instead of a loading spinner.
+
+## Project structure
+
+```
+server.mjs                         # Express API with SSE streaming
+scripts/
+  clone-page.mjs                   # Playwright website cloner
+  capture-ad.mjs                   # Ad creative URL → screenshot
+.claude/
+  skills/
+    clone-and-personalize/
+      SKILL.md                     # Full CRO pipeline skill
+CLAUDE.md                          # Project context for the agent
 ```
 
-## CRO personalization approach
-
-The skill applies a 5-phase pipeline:
+## CRO personalization pipeline
 
 1. **Clone** — `clone-page.mjs` produces static HTML
 2. **Analyze** — Extract ad signals: offer, audience, angle, tone, CTA intent
-3. **Personalize** — Surgical edits in priority order:
-   - Hero headline (message match — 80% of impact)
-   - Subheadline (expand with specifics)
-   - Primary CTA (match ad's intended action)
-   - Trust signals (only if ad uses social proof angle)
+3. **Personalize** — Surgical edits in priority order: hero headline (80% impact) → subheadline → CTA → trust signals
 4. **Anti-hallucination checks** — Every claim must trace to the ad or original page
-5. **Output** — Modified HTML + change report
-
-## What doesn't get edited
-
-- Navigation, footer, brand logos
-- Layout, CSS, spacing, colors
-- Images (unless directly relevant)
-- Any URLs or link targets
-- Sections below the fold unrelated to the ad
+5. **Output** — Modified HTML + ad analysis + change report with rationale
 
 ## Handling edge cases
 
 | Issue | How it's handled |
 |-------|-----------------|
-| **Random changes** | Edit priority system — only touch headline, subheadline, CTA, trust signals. Everything else is untouched. |
-| **Broken UI** | No JS, no CSS changes, no layout changes. Only text content inside existing tags is modified. |
-| **Hallucinations** | 5-point anti-hallucination checklist. Every claim must trace to the ad or original page. "When in doubt, don't edit." |
-| **Inconsistent outputs** | Structured pipeline with explicit phases. Ad analysis is saved to file before edits begin. Change report documents every edit with rationale. |
-| **Framework JS crashes** | All scripts stripped during cloning. Output is passive HTML. |
-| **WebGL/canvas elements** | Animated canvases detected and removed cleanly. Static canvases frozen to PNG. |
-| **Lazy-loaded content** | Full-page scroll during cloning triggers all lazy loading before HTML extraction. |
+| **Random changes** | Edit priority system — only headline, subheadline, CTA, trust signals touched |
+| **Broken UI** | No JS/CSS/layout changes. Only text content inside existing tags modified |
+| **Hallucinations** | 5-point anti-hallucination checklist. Every claim traces to ad or original page |
+| **Inconsistent outputs** | Structured pipeline with explicit phases. Ad analysis saved before edits begin |
+| **Framework JS crashes** | All scripts stripped during cloning |
+| **WebGL/canvas** | Animated canvases detected and removed. Static ones frozen to PNG |
+| **Lazy-loaded content** | Full-page scroll triggers all lazy loading before extraction |
+
+## Deployment
+
+Running on DigitalOcean (2 vCPU, 2GB RAM, Ubuntu 24.04).
+
+```bash
+# Server
+npm install
+npm run setup  # installs headless Chromium
+npm start      # starts API on port 3000
+```
+
+Requires Claude Code CLI authenticated (`claude` command must be logged in).
+
+## Cost per request
+
+- Clone only: ~$0 (no LLM, just Playwright)
+- Personalize: ~$0.70-1.10 (Claude Opus 4.6, ~40 turns)
+- Dominant cost is tokens, not compute
