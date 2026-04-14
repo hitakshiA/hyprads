@@ -70,9 +70,14 @@ textarea.fl{resize:vertical;min-height:68px}
 .rsb{font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.09em;color:var(--ok);display:flex;align-items:center;gap:7px}
 .rsb::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--ok)}
 .rsm{font-family:var(--mono);font-size:12px;color:var(--t3)}
-.cp{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:20px}
-.cpl{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.1em;color:var(--t3);margin-bottom:7px}.cpl.af{color:var(--ac)}
-.cp iframe{width:100%;height:clamp(360px,50vh,520px);border:1px solid var(--bd);border-radius:10px;background:#fafafa}
+.viewer{position:relative;margin-bottom:20px;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:#fafafa}
+.viewer iframe{width:100%;height:70vh;border:none;display:block;transition:opacity .3s var(--eoq)}
+.viewer iframe.hide{opacity:0;height:0;overflow:hidden;pointer-events:none;position:absolute}
+.viewer iframe.show{opacity:1;height:70vh;pointer-events:auto;position:relative}
+.vtoggle{display:flex;gap:4px;margin-bottom:14px}
+.vtag{font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.08em;padding:7px 14px;border-radius:7px;cursor:pointer;transition:all .2s var(--eoq);border:1px solid var(--bd);background:var(--s1);color:var(--t3)}
+.vtag.on{background:var(--ac);color:oklch(15% .02 55);border-color:var(--ac)}
+.vtag:not(.on):hover{border-color:var(--bh);color:var(--t2)}
 .lo{display:inline-flex;align-items:center;gap:5px;padding:7px 14px;border:1px solid var(--bd);border-radius:7px;background:0;color:var(--t2);font-size:13px;font-weight:600;text-decoration:none;transition:all .15s}
 .lo:hover{border-color:var(--ac);color:var(--ac)}
 .rps{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:20px}
@@ -89,7 +94,7 @@ textarea.fl{resize:vertical;min-height:68px}
 .nv{font-family:var(--mono);font-size:clamp(24px,3vw,30px);font-weight:600;color:var(--t1);letter-spacing:-.02em}
 .nlb{font-size:10.5px;text-transform:uppercase;letter-spacing:.07em;font-weight:600;color:var(--t3);margin-top:3px}
 footer{padding:28px 0;text-align:center;font-size:13px;color:var(--t3);border-top:1px solid var(--bd)}
-@media(max-width:720px){.top{grid-template-columns:1fr}.cp,.rps,.sps{grid-template-columns:1fr}.nms{flex-wrap:wrap;gap:24px}}
+@media(max-width:720px){.top{grid-template-columns:1fr}.rps,.sps{grid-template-columns:1fr}.nms{flex-wrap:wrap;gap:24px}.viewer iframe.show{height:50vh}}
 ::-webkit-scrollbar{width:5px}::-webkit-scrollbar-track{background:var(--s0)}::-webkit-scrollbar-thumb{background:var(--bd);border-radius:3px}
 @media(prefers-reduced-motion:reduce){.ti{animation:none;opacity:1;transform:none}}
 </style>
@@ -117,7 +122,14 @@ footer{padding:28px 0;text-align:center;font-size:13px;color:var(--t3);border-to
 <div id="prog" class="pr"><div class="prh"><span class="prl">Processing</span><span id="clock" class="tmr">0:00</span></div><div id="tl" class="tl"></div></div>
 <div id="res" class="rs">
 <div class="rsh"><span class="rsb">Personalization complete</span><span id="meta" class="rsm"></span></div>
-<div class="cp"><div><div class="cpl">Original</div><iframe id="ifO"></iframe></div><div><div class="cpl af">Personalized</div><iframe id="ifP"></iframe></div></div>
+<div class="vtoggle">
+<button class="vtag on" onclick="showView('pers')">Personalized</button>
+<button class="vtag" onclick="showView('orig')">Original</button>
+</div>
+<div class="viewer">
+<iframe id="ifP" class="show"></iframe>
+<iframe id="ifO" class="hide"></iframe>
+</div>
 <a id="vl" class="lo" href="#" target="_blank">Open personalized page &#8599;</a>
 <div class="rps"><div class="rp"><h4>Changes</h4><pre id="rc"></pre></div><div class="rp"><h4>Ad analysis</h4><pre id="ra"></pre></div></div>
 </div>
@@ -167,7 +179,13 @@ document.getElementById('ifO').src=u;const p=A+d.viewUrl;
 document.getElementById('ifP').src=p;document.getElementById('vl').href=p;
 document.getElementById('rc').textContent=d.changes||'No report';
 document.getElementById('ra').textContent=d.analysis||'No analysis';
+showView('pers');
 s.scrollIntoView({behavior:'smooth',block:'start'})}
+function showView(which){
+const ifP=document.getElementById('ifP'),ifO=document.getElementById('ifO');
+const tags=document.querySelectorAll('.vtag');
+if(which==='pers'){ifP.className='show';ifO.className='hide';tags[0].classList.add('on');tags[1].classList.remove('on')}
+else{ifP.className='hide';ifO.className='show';tags[0].classList.remove('on');tags[1].classList.add('on')}}
 </script>
 </body>
 </html>
