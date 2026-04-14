@@ -208,12 +208,8 @@ app.post('/personalize/stream', async (req, res) => {
 
     // Wait for process to finish
     await new Promise((resolve, reject) => {
-      child.on('close', (code) => {
-        if (code === 0) resolve();
-        else reject(new Error(`Agent exited with code ${code}`));
-      });
+      child.on('close', () => resolve());
       child.on('error', reject);
-      // 10 min timeout
       setTimeout(() => { child.kill(); reject(new Error('Timeout')); }, 600000);
     });
 
