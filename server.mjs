@@ -25,9 +25,14 @@ app.use((req, res, next) => {
 const PORT = process.env.PORT || 3000;
 const CLONE_DIR = resolve('./clones');
 
-// ─── Health ───
+// ─── Frontend ───
 app.get('/', (req, res) => {
-  res.json({ status: 'ok', service: 'hyprads', endpoints: ['POST /clone', 'POST /personalize', 'POST /personalize/stream', 'GET /clone/:jobId'] });
+  const frontendPath = resolve('./frontend/index.html');
+  if (existsSync(frontendPath)) {
+    res.type('html').send(readFileSync(frontendPath, 'utf8'));
+  } else {
+    res.json({ status: 'ok', service: 'hyprads', endpoints: ['POST /clone', 'POST /personalize', 'POST /personalize/stream', 'GET /clone/:jobId'] });
+  }
 });
 app.get('/health', (req, res) => {
   res.json({ status: 'ok', uptime: process.uptime() });
