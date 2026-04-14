@@ -58,6 +58,30 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 .proc-stage{font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--t1);letter-spacing:-0.03em;line-height:1.15;margin-bottom:16px;opacity:0;animation:stageFadeIn .4s var(--eoe) forwards}
 .proc-detail{font-family:var(--mono);font-size:13px;color:var(--t3);min-height:20px;max-width:480px;margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0;animation:stageFadeIn .4s var(--eoe) .1s forwards}
 .proc-step-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ac);margin-bottom:20px;opacity:.6}
+/* Stage icon animation */
+.proc-icon{width:64px;height:64px;margin:0 auto 24px;position:relative}
+.proc-icon svg{width:100%;height:100%}
+/* Cloning: download arrow bouncing */
+.anim-clone .arrow{animation:bounceDown 1s var(--eoq) infinite}
+@keyframes bounceDown{0%,100%{transform:translateY(-4px)}50%{transform:translateY(4px)}}
+/* Analyzing: rotating lens */
+.anim-analyze .lens{animation:spin 2.5s linear infinite;transform-origin:center}
+@keyframes spin{to{transform:rotate(360deg)}}
+/* Personalizing: pencil writing */
+.anim-edit .pencil{animation:write 1.2s var(--eoq) infinite}
+@keyframes write{0%,100%{transform:translate(0,0) rotate(-30deg)}50%{transform:translate(6px,2px) rotate(-30deg)}}
+/* Verifying: checkmark drawing */
+.anim-verify .check{stroke-dasharray:24;stroke-dashoffset:24;animation:drawCheck .6s var(--eoq) forwards}
+@keyframes drawCheck{to{stroke-dashoffset:0}}
+/* Report: typewriter */
+.anim-report .line1{animation:typeLine .8s var(--eoq) forwards}
+.anim-report .line2{animation:typeLine .8s var(--eoq) .3s forwards}
+.anim-report .line3{animation:typeLine .8s var(--eoq) .6s forwards}
+@keyframes typeLine{from{width:0}to{width:100%}}
+/* Generic pulse for other stages */
+.anim-default .ring{animation:ringPulse 1.5s var(--eoq) infinite}
+@keyframes ringPulse{0%,100%{r:16;opacity:.6}50%{r:22;opacity:.2}}
+
 .proc-history{margin-top:48px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap;max-width:320px;margin-left:auto;margin-right:auto}
 .proc-pip{width:8px;height:8px;border-radius:2px;background:var(--bd);transition:background .3s var(--eoq)}
 .proc-pip.done{background:var(--ok)}
@@ -125,6 +149,7 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 <div id="v2" class="view">
 <div id="clock" class="proc-timer">0:00</div>
 <div class="proc">
+<div id="procIcon" class="proc-icon"></div>
 <div id="stepLabel" class="proc-step-label"></div>
 <div id="stageText" class="proc-stage">Starting</div>
 <div id="stageDetail" class="proc-detail"></div>
@@ -208,17 +233,36 @@ async function run(){
   }catch(e){clearInterval(iv);document.getElementById('stageText').textContent='Connection failed'}
 }
 
-const stageNames={started:'Initializing',ad_processing:'Processing ad',ad_captured:'Ad captured',agent_starting:'Launching agent',cloning:'Cloning page',cloned:'Page cloned',analyzing_page:'Reading page',analyzing_ad:'Analyzing ad',personalizing:'Personalizing',verifying:'Verifying',report:'Writing report',finishing:'Finishing',agent_done:'Complete',complete:'Done',error:'Error'};
-let pipCount=0;
+const stageNames={started:'Initializing',ad_processing:'Processing ad',ad_captured:'Ad captured',agent_starting:'Launching agent',cloning:'Cloning page',cloned:'Page cloned',analyzing_page:'Analyzing page',analyzing_ad:'Analyzing ad',personalizing:'Editing',verifying:'Verifying',report:'Writing report',finishing:'Finishing',agent_done:'Complete',complete:'Done',error:'Error'};
+const stageIcons={
+  cloning:`<svg class="anim-clone" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><path class="arrow" d="M24 8v24M16 24l8 8 8-8"/><path d="M12 36h24" opacity=".3"/></svg>`,
+  analyzing_page:`<svg class="anim-analyze" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><circle class="lens" cx="22" cy="22" r="10"/><path class="lens" d="M30 30l8 8"/><circle cx="22" cy="22" r="4" opacity=".2"/></svg>`,
+  analyzing_ad:`<svg class="anim-analyze" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><rect x="8" y="8" width="32" height="32" rx="4" opacity=".3"/><circle class="lens" cx="24" cy="22" r="8"/><path d="M14 36h20" opacity=".2"/></svg>`,
+  personalizing:`<svg class="anim-edit" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><path class="pencil" d="M8 38l4-16L32 8l4 4L16 32z"/><path d="M28 12l4 4" opacity=".4"/></svg>`,
+  verifying:`<svg class="anim-verify" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2.5" color="var(--ok)"><circle cx="24" cy="24" r="16" opacity=".2"/><path class="check" d="M16 24l6 6 10-12"/></svg>`,
+  report:`<svg class="anim-report" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><rect x="10" y="6" width="28" height="36" rx="3" opacity=".2"/><rect class="line1" x="16" y="16" width="16" height="2" rx="1" fill="currentColor" opacity=".5"/><rect class="line2" x="16" y="22" width="12" height="2" rx="1" fill="currentColor" opacity=".4"/><rect class="line3" x="16" y="28" width="14" height="2" rx="1" fill="currentColor" opacity=".3"/></svg>`,
+  default:`<svg class="anim-default" viewBox="0 0 48 48" fill="none" stroke="currentColor" stroke-width="2" color="var(--ac)"><circle class="ring" cx="24" cy="24" r="16" opacity=".4"/><circle cx="24" cy="24" r="4" fill="currentColor" opacity=".6"/></svg>`
+};
+function getIcon(stage){
+  if(stage.includes('clon'))return stageIcons.cloning;
+  if(stage.includes('analyz'))return stageIcons[stage]||stageIcons.analyzing_page;
+  if(stage.includes('personal')||stage==='finishing')return stageIcons.personalizing;
+  if(stage.includes('verif'))return stageIcons.verifying;
+  if(stage.includes('report')||stage.includes('writing'))return stageIcons.report;
+  return stageIcons[stage]||stageIcons.default;
+}
 function updateProc(ev){
   const st=document.getElementById('stageText');
   const dt=document.getElementById('stageDetail');
   const label=document.getElementById('stepLabel');
   const pips=document.getElementById('pips');
+  const icon=document.getElementById('procIcon');
   let msg=stageNames[ev.stage]||ev.message;
   let detail='';
   if(ev.stage==='personalizing'&&ev.data?.tool==='Edit'){detail=ev.message.replace('Editing page: ','');msg='Editing'}
   if(ev.stage==='cloning')detail=ev.message.replace('Cloning ','');
+  /* Icon */
+  icon.innerHTML=getIcon(ev.stage);
   /* Animate stage text */
   st.style.animation='none';st.offsetHeight;st.style.animation='stageFadeIn .4s var(--eoe) forwards';
   st.textContent=msg;
