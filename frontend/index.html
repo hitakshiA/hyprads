@@ -52,18 +52,18 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 @media(max-width:720px){.v1-wrap{grid-template-columns:1fr}}
 
 /* ═══ VIEW 2: PROCESSING ═══ */
-#v2{justify-content:center;align-items:center}
-.proc{text-align:center;max-width:600px;width:100%;padding:0 24px}
-.proc-timer{font-family:var(--mono);font-size:clamp(48px,8vw,72px);font-weight:600;color:var(--ac);letter-spacing:-0.04em;margin-bottom:32px}
-.proc-stage{font-size:18px;color:var(--t1);min-height:28px;transition:opacity .3s;margin-bottom:8px}
-.proc-detail{font-family:var(--mono);font-size:12px;color:var(--t3);min-height:18px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:500px;margin:0 auto}
-.proc-log{margin-top:40px;max-height:180px;overflow-y:auto;text-align:left}
-.proc-log-item{font-size:12px;color:var(--t3);padding:3px 0;opacity:.4;transition:opacity .3s}
-.proc-log-item.latest{opacity:1;color:var(--t2)}
-.proc-dots{display:flex;gap:6px;justify-content:center;margin-top:24px}
-.proc-dot{width:6px;height:6px;border-radius:50%;background:var(--bd);transition:background .3s}
-.proc-dot.on{background:var(--ac)}
-.proc-dot.done{background:var(--ok)}
+#v2{justify-content:center;align-items:center;position:relative}
+.proc{text-align:center;max-width:640px;width:100%;padding:0 24px}
+.proc-timer{position:absolute;top:28px;right:32px;font-family:var(--mono);font-size:14px;color:var(--ac);font-weight:500;letter-spacing:.02em}
+.proc-stage{font-size:clamp(28px,4vw,42px);font-weight:700;color:var(--t1);letter-spacing:-0.03em;line-height:1.15;margin-bottom:16px;opacity:0;animation:stageFadeIn .4s var(--eoe) forwards}
+.proc-detail{font-family:var(--mono);font-size:13px;color:var(--t3);min-height:20px;max-width:480px;margin:0 auto;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:0;animation:stageFadeIn .4s var(--eoe) .1s forwards}
+.proc-step-label{font-size:10.5px;font-weight:600;text-transform:uppercase;letter-spacing:.12em;color:var(--ac);margin-bottom:20px;opacity:.6}
+.proc-history{margin-top:48px;display:flex;gap:3px;justify-content:center;flex-wrap:wrap;max-width:320px;margin-left:auto;margin-right:auto}
+.proc-pip{width:8px;height:8px;border-radius:2px;background:var(--bd);transition:background .3s var(--eoq)}
+.proc-pip.done{background:var(--ok)}
+.proc-pip.now{background:var(--ac);animation:pipPulse 1.5s ease-in-out infinite}
+@keyframes stageFadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+@keyframes pipPulse{0%,100%{opacity:1}50%{opacity:.4}}
 
 /* ═══ VIEW 3: RESULT ═══ */
 .res-bar{display:flex;align-items:center;gap:12px;padding:14px clamp(20px,4vw,48px);border-bottom:1px solid var(--bd);background:var(--s1)}
@@ -123,12 +123,12 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 
 <!-- ═══ VIEW 2: PROCESSING ═══ -->
 <div id="v2" class="view">
-<div class="proc">
 <div id="clock" class="proc-timer">0:00</div>
-<div id="stageText" class="proc-stage">Starting...</div>
+<div class="proc">
+<div id="stepLabel" class="proc-step-label"></div>
+<div id="stageText" class="proc-stage">Starting</div>
 <div id="stageDetail" class="proc-detail"></div>
-<div id="dots" class="proc-dots"></div>
-<div id="log" class="proc-log"></div>
+<div id="pips" class="proc-history"></div>
 </div>
 </div>
 
@@ -207,23 +207,26 @@ async function run(){
   }catch(e){clearInterval(iv);document.getElementById('stageText').textContent='Connection failed'}
 }
 
-const icons={started:'◉',ad_processing:'◎',agent_starting:'⚡',cloning:'↓',cloned:'✓',analyzing_page:'◇',personalizing:'✎',verifying:'△',report:'□',finishing:'→',complete:'●',error:'✕'};
+const stageNames={started:'Initializing',ad_processing:'Processing ad',ad_captured:'Ad captured',agent_starting:'Launching agent',cloning:'Cloning page',cloned:'Page cloned',analyzing_page:'Reading page',analyzing_ad:'Analyzing ad',personalizing:'Personalizing',verifying:'Verifying',report:'Writing report',finishing:'Finishing',agent_done:'Complete',complete:'Done',error:'Error'};
+let pipCount=0;
 function updateProc(ev){
   const st=document.getElementById('stageText');
   const dt=document.getElementById('stageDetail');
-  const log=document.getElementById('log');
-  let msg=ev.message,detail='';
-  if(ev.stage==='personalizing'&&ev.data?.tool==='Edit'){detail=ev.message.replace('Editing page: ','');msg='Editing HTML'}
-  const ico=icons[ev.stage]||'·';
-  st.textContent=ico+' '+msg;
+  const label=document.getElementById('stepLabel');
+  const pips=document.getElementById('pips');
+  let msg=stageNames[ev.stage]||ev.message;
+  let detail='';
+  if(ev.stage==='personalizing'&&ev.data?.tool==='Edit'){detail=ev.message.replace('Editing page: ','');msg='Editing'}
+  if(ev.stage==='cloning')detail=ev.message.replace('Cloning ','');
+  /* Animate stage text */
+  st.style.animation='none';st.offsetHeight;st.style.animation='stageFadeIn .4s var(--eoe) forwards';
+  st.textContent=msg;
+  dt.style.animation='none';dt.offsetHeight;dt.style.animation='stageFadeIn .4s var(--eoe) .1s forwards';
   dt.textContent=detail;
-  /* Log */
-  log.querySelectorAll('.proc-log-item').forEach(i=>i.classList.remove('latest'));
-  const li=document.createElement('div');
-  li.className='proc-log-item latest';
-  li.textContent=ico+' '+msg;
-  log.appendChild(li);
-  log.scrollTop=log.scrollHeight;
+  label.textContent=ev.stage.replace(/_/g,' ');
+  /* Pips */
+  pips.querySelectorAll('.proc-pip.now').forEach(p=>{p.classList.remove('now');p.classList.add('done')});
+  const pip=document.createElement('div');pip.className='proc-pip now';pips.appendChild(pip);
 }
 
 function showResult(d,origUrl){
