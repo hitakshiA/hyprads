@@ -23,7 +23,7 @@ html{-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
 }
 body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px;line-height:1.6;min-height:100vh}
 .pg{max-width:1120px;margin:0 auto;padding:0 clamp(20px,4vw,48px)}
-nav{display:flex;align-items:center;justify-content:space-between;padding:18px 0;border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:color-mix(in oklch,var(--s0) 85%,transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);margin:0 clamp(20px,4vw,48px)}
+nav{display:flex;align-items:center;justify-content:space-between;padding:18px clamp(20px,4vw,48px);border-bottom:1px solid var(--bd);position:sticky;top:0;z-index:50;background:var(--s0);max-width:1120px;margin:0 auto;width:100%}
 .wm{font-weight:700;font-size:17px;letter-spacing:-0.03em;color:var(--t1)}.wm b{color:var(--ac);font-weight:700}
 .nl{color:var(--t3);text-decoration:none;font-size:13px;font-weight:500;transition:color .15s}.nl:hover{color:var(--t2)}
 .top{display:grid;grid-template-columns:1fr 1fr;gap:clamp(40px,5vw,80px);align-items:start;padding:clamp(64px,10vh,120px) 0 60px}
@@ -43,7 +43,7 @@ textarea.fl{resize:vertical;min-height:68px}
 .tbs{display:flex;gap:1px;background:var(--s0);border-radius:8px;padding:3px;margin-bottom:10px}
 .tb{flex:1;padding:7px 10px;border:none;background:0;color:var(--t3);font-family:var(--sans);font-size:11px;font-weight:600;cursor:pointer;border-radius:6px;transition:all .15s var(--eoq);text-transform:uppercase;letter-spacing:.07em}
 .tb.on{background:var(--s2);color:var(--t1)}.tb:hover:not(.on){color:var(--t2)}
-.pn{display:none}.pn.on{display:block}
+.pn{display:none !important}.pn.on{display:block !important}
 .dr{border:1.5px dashed var(--bd);border-radius:8px;padding:clamp(20px,3vw,30px);text-align:center;cursor:pointer;transition:border-color .2s,background .2s;background:var(--s0);position:relative}
 .dr:hover{border-color:var(--ac);background:var(--acd)}.dr input{position:absolute;inset:0;opacity:0;cursor:pointer}
 .dr-l{color:var(--t3);font-size:13px}.dr-l strong{color:var(--t2)}.dr img{max-height:100px;margin-top:12px;border-radius:6px}
@@ -106,13 +106,12 @@ footer{padding:28px 0;text-align:center;font-size:13px;color:var(--t3);border-to
 <section class="hero">
 <h1>Stop sending ads to <i>generic</i> landing&nbsp;pages</h1>
 <p class="ld">Your ads promise something specific. Your landing page should too. HyprAds clones your page, reads the ad creative, and rewrites headlines, CTAs, and copy to match — in&nbsp;minutes.</p>
-<div class="sts"><span><strong>25%</strong> avg. lift</span><span><strong>6</strong> surgical edits</span><span><strong>~3 min</strong> end to end</span></div>
 </section>
 <div class="ia">
 <div class="gr"><label class="lb">Landing page URL</label><input id="url" class="fl" type="url" placeholder="https://your-landing-page.com" spellcheck="false" autocomplete="off"></div>
 <div class="gr"><label class="lb">Ad creative</label>
 <div class="tbs"><button class="tb on" data-t="text">Text</button><button class="tb" data-t="img">Image</button><button class="tb" data-t="link">URL</button></div>
-<div id="p-text" class="pn on"><textarea id="adtxt" class="fl" placeholder='e.g. "50% off scheduling for startup teams — try free for 30 days"'></textarea></div>
+<div id="p-text" class="pn on"><textarea id="adtxt" style="min-height:80px;display:block;width:100%;background:var(--s0);border:1px solid var(--bd);border-radius:8px;padding:13px 14px;color:var(--t1);font-family:var(--sans);font-size:14px;line-height:1.5;outline:none;resize:vertical" placeholder='e.g. "50% off scheduling for startup teams — try free for 30 days"'></textarea></div>
 <div id="p-img" class="pn"><div class="dr" id="drop"><input type="file" id="file" accept="image/*"><div class="dr-l"><strong>Drop image</strong> or click to browse</div><img id="preview" style="display:none"></div></div>
 <div id="p-link" class="pn"><input id="adurl" class="fl" type="url" placeholder="https://facebook.com/ads/library/..." spellcheck="false"></div>
 </div>
@@ -139,7 +138,6 @@ footer{padding:28px 0;text-align:center;font-size:13px;color:var(--t3);border-to
 <div class="sp"><div class="sn">02</div><h3>Analyze</h3><p>Claude reads the ad creative — image or text — and extracts offer, audience, tone, CTA intent, and emotional angle.</p></div>
 <div class="sp"><div class="sn">03</div><h3>Personalize</h3><p>Surgical HTML edits: hero headline, subheadline, CTAs, trust signals. Every change traces to the ad. Anti-hallucination&nbsp;verified.</p></div>
 </div>
-<div class="nms"><div><div class="nv">~3 min</div><div class="nlb">End to end</div></div><div><div class="nv">6</div><div class="nlb">Surgical edits</div></div><div><div class="nv">$0.70</div><div class="nlb">Per page</div></div><div><div class="nv">0</div><div class="nlb">Hallucinated claims</div></div></div>
 </section>
 </div>
 <footer>Built for the Troopod AI PM assignment</footer>
@@ -175,7 +173,7 @@ if(ev.stage==='personalizing'&&ev.data?.tool==='Edit'){d=ev.message.replace('Edi
 el.innerHTML='<span class="ico">'+ico+'</span>'+m+(d?'<span class="td">'+ico+' '+d+'</span>':'');tl.appendChild(el);el.scrollIntoView({behavior:'smooth',block:'nearest'})}
 function sr(d,u){const s=document.getElementById('res');s.classList.add('on');
 document.getElementById('meta').textContent=(d.sizeKB||'\u2014')+'KB \u00b7 '+document.getElementById('clock').textContent;
-document.getElementById('ifO').src=u;const p=A+d.viewUrl;
+const jobId=d.viewUrl.split('/').pop();document.getElementById('ifO').src=A+'/clone/'+jobId+'/original';const p=A+d.viewUrl;
 document.getElementById('ifP').src=p;document.getElementById('vl').href=p;
 document.getElementById('rc').textContent=d.changes||'No report';
 document.getElementById('ra').textContent=d.analysis||'No analysis';

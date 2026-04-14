@@ -41,6 +41,11 @@ This produces:
 
 **Verify** the file exists and is >100KB before proceeding. If it fails, report the error.
 
+**CRITICAL: Before making ANY edits**, copy the cloned HTML as a backup so we can show before/after:
+```bash
+cp clones/output/index.html clones/output/original.html
+```
+
 ---
 
 ## Phase 2: Analyze the Ad Creative

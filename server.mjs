@@ -231,6 +231,8 @@ app.post('/personalize/stream', async (req, res) => {
     if (html) writeFileSync(resolve(jobDir, 'index.html'), html);
     if (changes) writeFileSync(resolve(jobDir, 'changes.md'), changes);
     if (analysis) writeFileSync(resolve(jobDir, 'ad-analysis.md'), analysis);
+    const origPath = resolve(agentOutDir, 'original.html');
+    if (existsSync(origPath)) writeFileSync(resolve(jobDir, 'original.html'), readFileSync(origPath));
 
     send('complete', 'Personalization complete', {
       jobId,
@@ -267,6 +269,21 @@ app.get('/clone/:jobId/analysis', (req, res) => {
   const p = resolve(CLONE_DIR, req.params.jobId, 'ad-analysis.md');
   if (!existsSync(p)) return res.status(404).json({ error: 'Not found' });
   res.type('text').send(readFileSync(p, 'utf8'));
+});
+app.get('/clone/:jobId/original', (req, res) => {
+  const p1 = resolve(CLONE_DIR, req.params.jobId, 'original.html');
+  const p2 = '/home/hyprads/hyprads/clones/output/original.html';
+  const p = existsSync(p1) ? p1 : existsSync(p2) ? p2 : null;
+  if (!p) return res.status(404).json({ error: 'No original saved' });
+  res.type('html').send(readFileSync(p, 'utf8'));
+});
+app.get('/clone/:jobId/original.png', (req, res) => {
+  // Serve original screenshot — check job dir first, then agent output dir
+  const p1 = resolve(CLONE_DIR, req.params.jobId, 'original.png');
+  const p2 = '/home/hyprads/hyprads/clones/output/original.png';
+  const p = existsSync(p1) ? p1 : existsSync(p2) ? p2 : null;
+  if (!p) return res.status(404).json({ error: 'No screenshot' });
+  res.type('image/png').send(readFileSync(p));
 });
 
 // ─── Non-streaming personalization helper ───
