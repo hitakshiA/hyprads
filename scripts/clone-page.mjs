@@ -32,7 +32,7 @@ for (let y = 0; y < scrollHeight; y += 630) {
 }
 await page.evaluate(() => window.scrollTo(0, 0));
 await page.waitForTimeout(2000);
-await page.waitForLoadState('networkidle');
+await page.waitForLoadState('networkidle').catch(() => {});
 console.log('Scroll complete.');
 
 // Reference screenshot
@@ -171,10 +171,20 @@ let html = await page.content();
 // Strip iframes from HTML string (they may be re-injected after evaluate)
 html = html.replace(/<iframe\b[^>]*>[\s\S]*?<\/iframe>/gi, '');
 
-// srcset
+// Fix protocol-relative URLs (//domain.com/...) → https://domain.com/...
+// In attributes
+html = html.replace(/(src|href|poster)=(["'])\/\//g, '$1=$2https://');
+// In srcset values (multiple entries inside the attribute)
+html = html.replace(/srcset=(["'])([\s\S]*?)\1/g, (m, q, val) =>
+  `srcset=${q}${val.replace(/\/\//g, 'https://')}${q}`);
+// In url() CSS
+html = html.replace(/url\(\/\//g, 'url(https://');
+html = html.replace(/url\('\/\//g, "url('https://");
+html = html.replace(/url\("\/\//g, 'url("https://');
+// srcset with relative paths
 html = html.replace(/srcset=(["'])((?:(?!\1).)*)\1/g, (m, q, s) =>
   `srcset=${q}${s.replace(/(\/(?:_next\/image)[^,\s]*)/g, `${origin}$1`)}${q}`);
-// src, href, poster, action
+// src, href, poster, action — relative paths
 html = html.replace(/(src|href|poster|action)=(["'])\/(?!\/)/g, `$1=$2${origin}/`);
 // url() in inline styles
 html = html.replace(/url\(\//g, `url(${origin}/`);
