@@ -18,7 +18,10 @@ const browser = await chromium.launch({ headless: true });
 const page = await browser.newPage({ viewport: { width: 1440, height: 900 } });
 
 // ─── Load & scroll ───
-await page.goto(url, { waitUntil: 'networkidle', timeout: 60000 });
+await page.goto(url, { waitUntil: 'networkidle', timeout: 30000 }).catch(() =>
+  page.goto(url, { waitUntil: 'domcontentloaded', timeout: 15000 }).catch(() => {})
+);
+await page.waitForTimeout(3000);
 console.log('Page loaded.');
 
 console.log('Scrolling to trigger lazy loading...');
@@ -80,6 +83,66 @@ const externalCSS = await page.evaluate(async () => {
   return css;
 });
 console.log(`Fetched ${(externalCSS.length / 1024).toFixed(0)}KB CSS.`);
+
+// ─── Bake computed styles inline (fixes CSS-in-JS sites) ───
+console.log('Baking computed styles...');
+await page.evaluate(() => {
+  // Properties that matter for layout and appearance
+  const props = [
+    'display','position','top','right','bottom','left','float','clear',
+    'width','height','min-width','max-width','min-height','max-height',
+    'margin','padding','border','border-radius','box-sizing',
+    'flex-direction','flex-wrap','flex','justify-content','align-items','align-self','gap','order',
+    'grid-template-columns','grid-template-rows','grid-column','grid-row','grid-gap',
+    'overflow','overflow-x','overflow-y',
+    'background','background-color','background-image','background-size','background-position','background-repeat',
+    'color','font-family','font-size','font-weight','font-style','line-height','letter-spacing','text-align','text-decoration','text-transform','white-space','word-break','text-overflow',
+    'opacity','visibility','z-index','transform','transition',
+    'box-shadow','outline','cursor',
+    'list-style','table-layout','border-collapse','border-spacing',
+    'object-fit','object-position','vertical-align',
+  ];
+
+  const defaultStyles = new Map();
+  // Get default styles for common tags
+  for (const tag of ['div','span','p','a','h1','h2','h3','h4','h5','h6','ul','ol','li','img','button','input','nav','header','footer','section','main','article','aside','figure','figcaption']) {
+    const temp = document.createElement(tag);
+    document.body.appendChild(temp);
+    const cs = getComputedStyle(temp);
+    const defaults = {};
+    props.forEach(p => defaults[p] = cs.getPropertyValue(p));
+    defaultStyles.set(tag, defaults);
+    temp.remove();
+  }
+
+  // Walk all visible elements and inline non-default computed styles
+  const els = document.body.querySelectorAll('*');
+  let baked = 0;
+  els.forEach(el => {
+    if (el.tagName === 'SCRIPT' || el.tagName === 'STYLE' || el.tagName === 'NOSCRIPT') return;
+    const cs = getComputedStyle(el);
+    if (cs.display === 'none' && !el.closest('[class*="hidden"]')) return; // skip truly hidden
+
+    const tag = el.tagName.toLowerCase();
+    const defaults = defaultStyles.get(tag) || {};
+    const inlineStyles = [];
+
+    props.forEach(p => {
+      const val = cs.getPropertyValue(p);
+      if (val && val !== defaults[p] && val !== 'none' && val !== 'normal' && val !== 'auto' && val !== '0px' && val !== 'rgba(0, 0, 0, 0)' && val !== 'rgb(0, 0, 0)' && val !== 'start' && val !== 'baseline') {
+        inlineStyles.push(`${p}:${val}`);
+      }
+    });
+
+    if (inlineStyles.length > 0) {
+      const existing = el.getAttribute('style') || '';
+      el.setAttribute('style', existing + (existing ? ';' : '') + inlineStyles.join(';'));
+      baked++;
+    }
+  });
+
+  return baked;
+}).then(n => console.log(`Baked ${n} elements with inline styles.`));
 
 // ─── Clean DOM ───
 await page.evaluate(() => {
