@@ -98,18 +98,17 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 .res-link:hover{border-color:var(--ac);color:var(--ac)}
 .res-link.back{border:none;padding:5px 0}
 
-/* Full-width viewer with toggle */
-.viewer-wrap{flex:1;display:flex;flex-direction:column;overflow:hidden}
-.viewer-bar{display:flex;align-items:center;gap:8px;padding:10px 20px;background:var(--s1);border-bottom:1px solid var(--bd)}
-.vtog{padding:6px 14px;border:1px solid var(--bd);border-radius:6px;background:none;color:var(--t3);font-family:var(--sans);font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.06em;cursor:pointer;transition:all .15s}
-.vtog.on{background:var(--ac);color:oklch(15% .02 55);border-color:var(--ac)}
-.vtog:not(.on):hover{border-color:var(--t3);color:var(--t2)}
-.viewer-open{margin-left:auto;font-size:11px;color:var(--t3);text-decoration:none;font-weight:500;transition:color .15s}
-.viewer-open:hover{color:var(--ac)}
-.viewer-frame{flex:1;position:relative}
-.viewer-frame iframe{position:absolute;top:0;left:0;width:100%;height:100%;border:none;transition:opacity .25s}
-.viewer-frame iframe.hide{opacity:0;pointer-events:none}
-.viewer-frame iframe.show{opacity:1;pointer-events:auto}
+/* Side-by-side comparison */
+.compare{display:grid;grid-template-columns:1fr 1fr;gap:20px;padding:24px clamp(16px,3vw,32px);flex:1;overflow:hidden}
+.compare-pane{display:flex;flex-direction:column;border:1px solid var(--bd);border-radius:12px;overflow:hidden;background:var(--s1)}
+.compare-label{padding:10px 16px;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--bd)}
+.compare-tag{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.1em;padding:3px 8px;border-radius:4px}
+.compare-tag.orig{background:var(--bd);color:var(--t2)}
+.compare-tag.pers{background:var(--ac);color:oklch(15% .02 55)}
+.compare-pane iframe{flex:1;border:none;width:100%;min-height:0}
+.compare-btn{display:block;text-align:center;padding:10px;border-top:1px solid var(--bd);font-size:11px;font-weight:600;color:var(--t3);text-decoration:none;text-transform:uppercase;letter-spacing:.06em;transition:all .15s;background:none}
+.compare-btn:hover{background:var(--s2);color:var(--ac)}
+@media(max-width:720px){.compare{grid-template-columns:1fr;gap:16px}}
 
 /* Reports toggle */
 .res-reports{padding:24px clamp(20px,4vw,48px);border-top:1px solid var(--bd);background:var(--s0)}
@@ -170,13 +169,14 @@ body{background:var(--s0);color:var(--t1);font-family:var(--sans);font-size:15px
 </div>
 <div class="compare">
 <div class="compare-pane">
-<div class="compare-head orig"><span class="compare-tag orig">Original</span><a id="linkOrigInline" class="compare-open" href="#" target="_blank">Open &#8599;</a></div>
+<div class="compare-label"><span class="compare-tag orig">Original</span></div>
 <iframe id="ifOrig"></iframe>
+<a id="linkOrigInline" class="compare-btn" href="#" target="_blank">Open full page &#8599;</a>
 </div>
-<div class="compare-divider"></div>
 <div class="compare-pane">
-<div class="compare-head pers"><span class="compare-tag pers">Personalized</span><a id="linkPersInline" class="compare-open" href="#" target="_blank">Open &#8599;</a></div>
+<div class="compare-label"><span class="compare-tag pers">Personalized</span></div>
 <iframe id="ifPers"></iframe>
+<a id="linkPersInline" class="compare-btn" href="#" target="_blank">Open full page &#8599;</a>
 </div>
 </div>
 <div class="res-reports">
