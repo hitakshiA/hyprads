@@ -1,38 +1,16 @@
 # HyprAds
 
-AI-powered landing page personalizer. User inputs an ad creative + landing page URL → gets a personalized landing page that matches the ad using CRO principles.
+AI-powered ad-to-landing page personalization using Claude Agent SDK. Paste a URL and an ad creative, get back the same page with headlines, CTAs, and copy rewritten to match the ad.
 
-**Live API:** `http://159.89.164.228:3000`
+**Live Demo:** [https://hyprads.duckdns.org](https://hyprads.duckdns.org)
+**Submission PDF:** [docs/troopod-submission.pdf](docs/troopod-submission.pdf)
 
----
+Built for the [Troopod AI PM Assignment](mailto:nj@troopod.io).
 
 ## Architecture
 
-```
-┌─────────────────────────────────────────────────────────┐
-│                     FRONTEND APP                         │
-│  User pastes URL + uploads/links ad creative             │
-│  Connects to /personalize/stream via SSE                 │
-│  Shows real-time progress → renders before/after         │
-└────────────────────────┬────────────────────────────────┘
-                         │ POST /personalize/stream
-                         ▼
-┌─────────────────────────────────────────────────────────┐
-│                   EXPRESS API (server.mjs)                │
-│  :3000 on DigitalOcean                                   │
-│                                                          │
-│  1. Receives { url, adCreative }                         │
-│  2. If ad is a URL → capture-ad.mjs screenshots it       │
-│  3. Spawns Claude Agent (Opus 4.6) with the skill        │
-│  4. Streams SSE events back to frontend                  │
-└────────────────────────┬────────────────────────────────┘
-                         │
-          ┌──────────────┼──────────────┐
-          ▼              ▼              ▼
-   clone-page.mjs   Claude Agent   capture-ad.mjs
-   (Playwright)     (reads SKILL.md,  (Playwright)
-   URL → HTML       edits HTML)     URL → screenshot
-```
+![HyprAds Architecture](docs/architecture.png)
+
 
 ---
 
