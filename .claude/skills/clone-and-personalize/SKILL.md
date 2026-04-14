@@ -175,6 +175,9 @@ new_string: Email that reaches inboxes — 50% off
 - Only change text content inside tags — never delete tags, change class names, or alter attributes
 - If the text appears multiple times, include enough surrounding HTML to make the match unique
 - Preserve all HTML structure, whitespace patterns, and tag nesting
+- **Match the original text length.** If the original button says "Try it free" (11 chars), your replacement must be similar length. "Start Your Free Trial Today" (27 chars) WILL break the button layout. Use "Start Free Trial" (15 chars) instead.
+- **Never change inline styles** that are on the element. The computed styles are baked in and critical for layout.
+- **For buttons specifically:** keep replacement text SHORT. Single line. No more than ~20% longer than original.
 
 ---
 
@@ -191,6 +194,68 @@ Before finalizing, verify each edit against these rules:
 4. **No speculative features.** Don't claim the product does something unless the original page says it does.
 
 5. **When in doubt, don't edit.** Under-personalization is always better than wrong personalization. A page that's 90% matched to the ad is better than one with a hallucinated offer.
+
+---
+
+## Phase 4.5: Visual QA Loop (CRITICAL)
+
+After making edits, you MUST verify the page still looks correct. Broken buttons, misaligned layouts, or mangled text will destroy the demo.
+
+**Step 1: Serve and screenshot the edited page**
+
+```bash
+cd clones/output && python3 -m http.server 8888 &
+sleep 1
+```
+
+Then use Bash to run a Playwright screenshot:
+
+```bash
+node -e "
+const{chromium}=require('playwright');
+(async()=>{
+  const b=await chromium.launch({headless:true});
+  const p=await b.newPage({viewport:{width:1440,height:900}});
+  await p.goto('http://localhost:8888/index.html',{waitUntil:'domcontentloaded',timeout:10000});
+  await p.waitForTimeout(2000);
+  await p.screenshot({path:'clones/output/personalized-check.png',fullPage:false});
+  await b.close();
+})();
+"
+```
+
+**Step 2: Read both screenshots and compare**
+
+Use Read tool on:
+- `clones/output/original.png` (the original page screenshot)
+- `clones/output/personalized-check.png` (the edited page screenshot)
+
+Compare them visually. Check for:
+- **Broken buttons** — text overflowing, multiline where it should be single-line, missing backgrounds
+- **Layout shifts** — elements moved, columns broken, spacing changed
+- **Missing elements** — did an edit accidentally delete an HTML tag?
+- **Text overflow** — new text too long for its container
+
+**Step 3: Fix any issues found**
+
+If something looks broken:
+1. Identify which edit caused it (usually the new text is too long for the container)
+2. Shorten the replacement text to fit the original's character count
+3. Or revert that specific edit if it can't be fixed
+4. Re-screenshot and compare again
+
+**Step 4: Kill the server**
+
+```bash
+pkill -f "python3 -m http.server 8888"
+```
+
+**Repeat until the personalized page looks as clean as the original, just with different text.**
+
+Common fixes:
+- CTA button text too long → shorten: "Start Your Free Trial Today" → "Start Free Trial"
+- Headline wrapping differently → reduce word count to match original line count
+- Subheadline breaking layout → keep within original character count ±10%
 
 ---
 
